@@ -21,11 +21,11 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    - name: Download and Install Gradle 9.3.1
+    - name: Download and Install Gradle 8.9
       run: |
-        wget https://services.gradle.org/distributions/gradle-9.3.1-bin.zip
-        unzip -q gradle-9.3.1-bin.zip
-        sudo mv gradle-9.3.1 /opt/gradle
+        wget https://services.gradle.org/distributions/gradle-8.9-bin.zip
+        unzip -q gradle-8.9-bin.zip
+        sudo mv gradle-8.9 /opt/gradle
         echo "/opt/gradle/bin" >> $GITHUB_PATH
 
     - name: Build Debug APK with Gradle
