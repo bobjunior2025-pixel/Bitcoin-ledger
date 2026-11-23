@@ -13,8 +13,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aistudio.bitcoinledger.btcxyz.data.TransactionEntity
@@ -58,23 +61,35 @@ fun HomeScreen(
         .fillMaxSize()
         .padding(16.dp)
     ) {
+      // Header with Hardware Ledger connection & default location
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.Top
       ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+          modifier = Modifier.weight(1f),
+          verticalAlignment = Alignment.CenterVertically
+        ) {
           Box(
             modifier = Modifier
-              .size(40.dp)
+              .size(44.dp)
               .background(LedgerCard, CircleShape),
             contentAlignment = Alignment.Center
           ) {
-            Icon(Icons.Default.Shield, contentDescription = "Ledger", tint = LedgerGreen, modifier = Modifier.size(24.dp))
+            Icon(Icons.Default.Shield, contentDescription = "Hardware Ledger", tint = LedgerGreen, modifier = Modifier.size(24.dp))
           }
           Spacer(modifier = Modifier.width(12.dp))
-          Column {
-            Text(text = account.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = LedgerTextPrimary)
+          Column(modifier = Modifier.weight(1f)) {
+            Text(
+              text = account.name,
+              fontWeight = FontWeight.Bold,
+              fontSize = 16.sp,
+              color = LedgerTextPrimary,
+              maxLines = 1,
+              overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(2.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
               Box(
                 modifier = Modifier
@@ -82,7 +97,31 @@ fun HomeScreen(
                   .background(LedgerGreen, CircleShape)
               )
               Spacer(modifier = Modifier.width(6.dp))
-              Text(text = "Ledger Nano X Conectado", fontSize = 12.sp, color = LedgerGreen)
+              Text(
+                text = "Conectado ao Hardware Ledger",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = LedgerGreen,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+              )
+            }
+            Spacer(modifier = Modifier.height(2.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+              Icon(
+                imageVector = Icons.Default.LocationOn,
+                contentDescription = "Localização do Hardware",
+                tint = LedgerTextSecondary,
+                modifier = Modifier.size(13.dp)
+              )
+              Spacer(modifier = Modifier.width(4.dp))
+              Text(
+                text = account.hardwareLocation.ifBlank { "Rua Leocádia, 856 - Realengo" },
+                fontSize = 11.sp,
+                color = LedgerTextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+              )
             }
           }
         }
@@ -92,15 +131,17 @@ fun HomeScreen(
         }
       }
 
-      Spacer(modifier = Modifier.height(20.dp))
+      Spacer(modifier = Modifier.height(18.dp))
 
+      // Balance Card
       Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = LedgerCard)
+        colors = CardDefaults.cardColors(containerColor = LedgerCard),
+        border = BorderStroke(1.dp, LedgerBorder.copy(alpha = 0.6f))
       ) {
         Column(
-          modifier = Modifier.padding(24.dp),
+          modifier = Modifier.padding(22.dp),
           horizontalAlignment = Alignment.CenterHorizontally
         ) {
           Text(text = "Saldo Total em Bitcoin", fontSize = 13.sp, color = LedgerTextSecondary)
@@ -109,34 +150,39 @@ fun HomeScreen(
             text = "${btcFormat.format(btcBalance)} BTC",
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
-            color = LedgerTextPrimary
+            color = LedgerTextPrimary,
+            maxLines = 1
           )
           Spacer(modifier = Modifier.height(12.dp))
           Row(
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
           ) {
             Surface(
               color = LedgerSurface,
-              shape = RoundedCornerShape(8.dp)
+              shape = RoundedCornerShape(10.dp),
+              border = BorderStroke(1.dp, LedgerBorder.copy(alpha = 0.5f))
             ) {
               Text(
                 text = "US: ${currencyUsdFormat.format(usdValue)}",
                 fontSize = 12.sp,
                 color = LedgerTextSecondary,
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                maxLines = 1
               )
             }
             Surface(
               color = LedgerSurface,
-              shape = RoundedCornerShape(8.dp)
+              shape = RoundedCornerShape(10.dp),
+              border = BorderStroke(1.dp, LedgerGreen.copy(alpha = 0.35f))
             ) {
               Text(
                 text = "BR: ${currencyBrlFormat.format(brlValue)}",
                 fontSize = 12.sp,
                 color = LedgerGreen,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                maxLines = 1
               )
             }
           }
@@ -150,68 +196,70 @@ fun HomeScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
           ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+              modifier = Modifier.weight(1f),
+              verticalAlignment = Alignment.CenterVertically
+            ) {
               Icon(Icons.Default.TrendingUp, contentDescription = null, tint = LedgerGreen, modifier = Modifier.size(16.dp))
               Spacer(modifier = Modifier.width(6.dp))
-              Text(text = "Rendimento automático a cada 1h", fontSize = 12.sp, color = LedgerTextSecondary)
+              Text(
+                text = "Rendimento a cada 1h",
+                fontSize = 12.sp,
+                color = LedgerTextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+              )
             }
-            Text(text = "+0.00005 BTC/h", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = LedgerGreen)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+              text = "+0.00005 BTC/h",
+              fontSize = 12.sp,
+              fontWeight = FontWeight.Bold,
+              color = LedgerGreen,
+              softWrap = false,
+              maxLines = 1
+            )
           }
         }
       }
 
-      Spacer(modifier = Modifier.height(20.dp))
+      Spacer(modifier = Modifier.height(18.dp))
 
+      // Redesigned Crisp Action Buttons (Icon on top + single-line label below)
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
       ) {
-        Button(
+        HomeActionButton(
+          label = "Enviar",
+          icon = Icons.Default.ArrowUpward,
+          isPrimary = true,
           onClick = onNavigateSend,
           modifier = Modifier
             .weight(1f)
-            .height(50.dp)
-            .testTag("send_button"),
-          colors = ButtonDefaults.buttonColors(containerColor = LedgerGreen),
-          shape = RoundedCornerShape(12.dp)
-        ) {
-          Icon(Icons.Default.ArrowUpward, contentDescription = null, tint = LedgerDarkBackground, modifier = Modifier.size(18.dp))
-          Spacer(modifier = Modifier.width(6.dp))
-          Text(text = "Enviar", fontWeight = FontWeight.Bold, color = LedgerDarkBackground, fontSize = 14.sp)
-        }
-
-        Button(
+            .testTag("send_button")
+        )
+        HomeActionButton(
+          label = "Receber",
+          icon = Icons.Default.ArrowDownward,
+          isPrimary = false,
           onClick = onNavigateReceive,
           modifier = Modifier
             .weight(1f)
-            .height(50.dp)
-            .testTag("receive_button"),
-          colors = ButtonDefaults.buttonColors(containerColor = LedgerCard),
-          shape = RoundedCornerShape(12.dp),
-          border = BorderStroke(1.dp, LedgerBorder)
-        ) {
-          Icon(Icons.Default.ArrowDownward, contentDescription = null, tint = LedgerGreen, modifier = Modifier.size(18.dp))
-          Spacer(modifier = Modifier.width(6.dp))
-          Text(text = "Receber", fontWeight = FontWeight.Bold, color = LedgerTextPrimary, fontSize = 14.sp)
-        }
-
-        OutlinedButton(
+            .testTag("receive_button")
+        )
+        HomeActionButton(
+          label = "Extrato",
+          icon = Icons.Default.ReceiptLong,
+          isPrimary = false,
           onClick = onNavigateTransactions,
           modifier = Modifier
             .weight(1f)
-            .height(50.dp)
-            .testTag("statement_button"),
-          shape = RoundedCornerShape(12.dp),
-          border = BorderStroke(1.dp, LedgerBorder),
-          colors = ButtonDefaults.outlinedButtonColors(contentColor = LedgerTextPrimary)
-        ) {
-          Icon(Icons.Default.ReceiptLong, contentDescription = null, tint = LedgerGreen, modifier = Modifier.size(18.dp))
-          Spacer(modifier = Modifier.width(6.dp))
-          Text(text = "Extrato", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-        }
+            .testTag("statement_button")
+        )
       }
 
-      Spacer(modifier = Modifier.height(24.dp))
+      Spacer(modifier = Modifier.height(22.dp))
 
       Row(
         modifier = Modifier.fillMaxWidth(),
@@ -220,7 +268,7 @@ fun HomeScreen(
       ) {
         Text(text = "Últimas Movimentações", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = LedgerTextPrimary)
         TextButton(onClick = onNavigateTransactions) {
-          Text(text = "Ver Extrato", color = LedgerGreen, fontSize = 13.sp)
+          Text(text = "Ver Extrato", color = LedgerGreen, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
         }
       }
 
@@ -257,5 +305,59 @@ fun HomeScreen(
       tx = tx,
       onDismiss = { selectedTransaction = null }
     )
+  }
+}
+
+@Composable
+private fun HomeActionButton(
+  label: String,
+  icon: ImageVector,
+  isPrimary: Boolean,
+  onClick: () -> Unit,
+  modifier: Modifier = Modifier
+) {
+  val containerColor = if (isPrimary) LedgerGreen else LedgerCard
+  val contentColor = if (isPrimary) LedgerDarkBackground else LedgerTextPrimary
+  val iconBgColor = if (isPrimary) LedgerDarkBackground.copy(alpha = 0.14f) else LedgerSurface
+  val iconTint = if (isPrimary) LedgerDarkBackground else LedgerGreen
+  val border: BorderStroke? = if (isPrimary) null else BorderStroke(1.dp, LedgerBorder)
+
+  Surface(
+    onClick = onClick,
+    modifier = modifier.height(82.dp),
+    shape = RoundedCornerShape(16.dp),
+    color = containerColor,
+    border = border
+  ) {
+    Column(
+      modifier = Modifier
+        .fillMaxSize()
+        .padding(horizontal = 8.dp, vertical = 10.dp),
+      horizontalAlignment = Alignment.CenterHorizontally,
+      verticalArrangement = Arrangement.Center
+    ) {
+      Box(
+        modifier = Modifier
+          .size(34.dp)
+          .background(iconBgColor, CircleShape),
+        contentAlignment = Alignment.Center
+      ) {
+        Icon(
+          imageVector = icon,
+          contentDescription = label,
+          tint = iconTint,
+          modifier = Modifier.size(19.dp)
+        )
+      }
+      Spacer(modifier = Modifier.height(6.dp))
+      Text(
+        text = label,
+        color = contentColor,
+        fontSize = 13.sp,
+        fontWeight = FontWeight.Bold,
+        maxLines = 1,
+        softWrap = false
+      )
+    }
   }
 }

@@ -260,7 +260,7 @@ fun StatementReceiptDialog(
         }
 
         ReceiptRow("Data e Hora", formatStatementDate(tx.timestamp))
-        ReceiptRow("Quem enviou", tx.sender.ifBlank { "Ledger Nano X" })
+        ReceiptRow("Quem enviou", tx.sender.ifBlank { "Hardware Ledger" })
         ReceiptRow("Destinatário", tx.recipient)
         ReceiptRow("Instituição / Rede", tx.institution.ifBlank { "Bitcoin Network (SegWit)" })
         ReceiptRow("Taxa de Rede", "${String.format(Locale.US, "%.6f", tx.feeBtc)} BTC")

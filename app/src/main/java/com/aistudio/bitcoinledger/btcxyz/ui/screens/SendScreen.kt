@@ -5,8 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,12 +29,12 @@ fun SendScreen(
 ) {
   var recipient by remember { mutableStateOf("") }
   var amountStr by remember { mutableStateOf("") }
-  var selectedOrigin by remember { mutableStateOf("Ledger Nano X") }
+  var selectedOrigin by remember { mutableStateOf("Hardware Ledger") }
   var expandedOrigin by remember { mutableStateOf(false) }
 
-  val origins = listOf("Ledger Nano X", "Binance Integration", "Mercado Pago Account", "Outra Exchange")
+  val origins = listOf("Hardware Ledger", "Binance", "Mercado Pago", "PicPay", "Outra Carteira")
 
-  val amountBtc = amountStr.toDoubleOrNull() ?: 0.0
+  val amountBtc = amountStr.replace(",", ".").toDoubleOrNull() ?: 0.0
   val usdVal = amountBtc * priceUsd
   val brlVal = amountBtc * priceBrl
 
@@ -55,7 +55,7 @@ fun SendScreen(
         verticalAlignment = Alignment.CenterVertically
       ) {
         IconButton(onClick = onBack, modifier = Modifier.testTag("back_button")) {
-          Icon(Icons.Default.ArrowBack, contentDescription = "Voltar", tint = LedgerTextPrimary)
+          Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar", tint = LedgerTextPrimary)
         }
         Spacer(modifier = Modifier.width(8.dp))
         Text(text = "Enviar Bitcoin", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = LedgerTextPrimary)
@@ -65,8 +65,9 @@ fun SendScreen(
 
       Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = LedgerCard)
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = LedgerCard),
+        border = BorderStroke(1.dp, LedgerBorder)
       ) {
         Row(
           modifier = Modifier
@@ -146,18 +147,21 @@ fun SendScreen(
       Box(modifier = Modifier.fillMaxWidth()) {
         OutlinedButton(
           onClick = { expandedOrigin = true },
-          modifier = Modifier.fillMaxWidth(),
+          modifier = Modifier
+            .fillMaxWidth()
+            .height(52.dp),
           shape = RoundedCornerShape(12.dp),
           colors = ButtonDefaults.outlinedButtonColors(contentColor = LedgerTextPrimary),
-          border = BorderStroke(1.dp, LedgerBorder)
+          border = BorderStroke(1.dp, LedgerBorder),
+          contentPadding = PaddingValues(horizontal = 16.dp)
         ) {
           Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
           ) {
-            Text(text = selectedOrigin)
-            Icon(Icons.Default.QrCodeScanner, contentDescription = null, tint = LedgerGreen)
+            Text(text = selectedOrigin, fontWeight = FontWeight.Medium)
+            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = LedgerGreen)
           }
         }
 
@@ -189,12 +193,18 @@ fun SendScreen(
         },
         modifier = Modifier
           .fillMaxWidth()
-          .height(50.dp)
+          .height(54.dp)
           .testTag("confirm_send_button"),
         colors = ButtonDefaults.buttonColors(containerColor = LedgerGreen),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(14.dp)
       ) {
-        Text(text = "Confirmar Envio com Ledger", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = LedgerDarkBackground)
+        Text(
+          text = "Confirmar Envio com Hardware Ledger",
+          fontSize = 15.sp,
+          fontWeight = FontWeight.Bold,
+          color = LedgerDarkBackground,
+          maxLines = 1
+        )
       }
 
       Spacer(modifier = Modifier.height(16.dp))

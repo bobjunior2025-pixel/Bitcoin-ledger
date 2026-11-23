@@ -53,97 +53,104 @@ class MainActivity : ComponentActivity() {
               .fillMaxSize()
               .padding(innerPadding)
           ) {
-          when (appState) {
-            is AppState.Loading -> {
-              Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = LedgerGreen)
-              }
-            }
-            is AppState.Onboarding -> {
-              OnboardingScreen(
-                onAccountCreated = { name, pin ->
-                  viewModel.createAccount(name, pin)
-                  currentScreen = "home"
-                }
-              )
-            }
-            is AppState.Locked -> {
-              LockScreen(
-                walletName = account?.name ?: "Bitcoin Ledger",
-                onUnlock = { pin ->
-                  viewModel.verifyPin(pin)
-                }
-              )
-            }
-            is AppState.Unlocked -> {
-              if (account != null) {
-                when (currentScreen) {
-                  "home" -> {
-                    HomeScreen(
-                      account = account!!,
-                      transactions = transactions,
-                      priceUsd = priceUsd,
-                      priceBrl = priceBrl,
-                      onNavigateSend = { currentScreen = "send" },
-                      onNavigateReceive = { currentScreen = "receive" },
-                      onNavigateTransactions = { currentScreen = "transactions" },
-                      onNavigateSettings = { currentScreen = "settings" }
-                    )
-                  }
-                  "send" -> {
-                    BackHandler { currentScreen = "home" }
-                    SendScreen(
-                      balanceBtc = account!!.balanceBtc,
-                      priceUsd = priceUsd,
-                      priceBrl = priceBrl,
-                      onBack = { currentScreen = "home" },
-                      onSend = { recipient, amount, origin ->
-                        viewModel.sendBitcoin(recipient, amount, origin)
-                        currentScreen = "home"
-                      }
-                    )
-                  }
-                  "receive" -> {
-                    BackHandler { currentScreen = "home" }
-                    ReceiveScreen(onBack = { currentScreen = "home" })
-                  }
-                  "transactions" -> {
-                    BackHandler { currentScreen = "home" }
-                    TransactionsScreen(transactions = transactions, onBack = { currentScreen = "home" })
-                  }
-                  "settings" -> {
-                    BackHandler { currentScreen = "home" }
-                    SettingsScreen(
-                      isDevUnlocked = isDevUnlocked,
-                      onBack = { currentScreen = "home" },
-                      onLockApp = { viewModel.lockApp() },
-                      onNavigateTransactions = { currentScreen = "transactions" },
-                      onUnlockDev = { code -> viewModel.verifyDevPasscode(code) },
-                      onOpenDevPanel = { currentScreen = "dev_panel" }
-                    )
-                  }
-                  "dev_panel" -> {
-                    BackHandler { currentScreen = "settings" }
-                    DevPanelScreen(
-                      balanceBtc = account!!.balanceBtc,
-                      transactions = transactions,
-                      onBack = { currentScreen = "settings" },
-                      onAddBtc = { amount -> viewModel.devAddBtc(amount) },
-                      onSubtractBtc = { amount -> viewModel.devSubtractBtc(amount) },
-                      onFastForward = { viewModel.devFastForwardHour() },
-                      onAddCustomStatement = { type, sender, recipient, institution, amountBtc, status, note, applyToBalance ->
-                        viewModel.devAddCustomStatement(type, sender, recipient, institution, amountBtc, status, note, applyToBalance)
-                      },
-                      onUpdateTransaction = { original, type, sender, recipient, institution, amountBtc, status, note, timestamp ->
-                        viewModel.devUpdateTransaction(original, type, sender, recipient, institution, amountBtc, status, note, timestamp)
-                      },
-                      onDeleteTransaction = { tx -> viewModel.devDeleteTransaction(tx) }
-                    )
-                  }
+            when (appState) {
+              is AppState.Loading -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                  CircularProgressIndicator(color = LedgerGreen)
                 }
               }
+              is AppState.Onboarding -> {
+                OnboardingScreen(
+                  onAccountCreated = { name, cpf, keyAddress, pin ->
+                    viewModel.createAccount(name, cpf, keyAddress, pin)
+                    currentScreen = "home"
+                  }
+                )
+              }
+              is AppState.Locked -> {
+                LockScreen(
+                  walletName = account?.name ?: "Bitcoin Ledger",
+                  onUnlock = { pin ->
+                    viewModel.verifyPin(pin)
+                  }
+                )
+              }
+              is AppState.Unlocked -> {
+                if (account != null) {
+                  when (currentScreen) {
+                    "home" -> {
+                      HomeScreen(
+                        account = account!!,
+                        transactions = transactions,
+                        priceUsd = priceUsd,
+                        priceBrl = priceBrl,
+                        onNavigateSend = { currentScreen = "send" },
+                        onNavigateReceive = { currentScreen = "receive" },
+                        onNavigateTransactions = { currentScreen = "transactions" },
+                        onNavigateSettings = { currentScreen = "settings" }
+                      )
+                    }
+                    "send" -> {
+                      BackHandler { currentScreen = "home" }
+                      SendScreen(
+                        balanceBtc = account!!.balanceBtc,
+                        priceUsd = priceUsd,
+                        priceBrl = priceBrl,
+                        onBack = { currentScreen = "home" },
+                        onSend = { recipient, amount, origin ->
+                          viewModel.sendBitcoin(recipient, amount, origin)
+                          currentScreen = "home"
+                        }
+                      )
+                    }
+                    "receive" -> {
+                      BackHandler { currentScreen = "home" }
+                      ReceiveScreen(
+                        keyAddress = account!!.keyAddress,
+                        hardwareLocation = account!!.hardwareLocation,
+                        onBack = { currentScreen = "home" }
+                      )
+                    }
+                    "transactions" -> {
+                      BackHandler { currentScreen = "home" }
+                      TransactionsScreen(transactions = transactions, onBack = { currentScreen = "home" })
+                    }
+                    "settings" -> {
+                      BackHandler { currentScreen = "home" }
+                      SettingsScreen(
+                        account = account!!,
+                        isDevUnlocked = isDevUnlocked,
+                        onBack = { currentScreen = "home" },
+                        onLockApp = { viewModel.lockApp() },
+                        onNavigateTransactions = { currentScreen = "transactions" },
+                        onUnlockDev = { code -> viewModel.verifyDevPasscode(code) },
+                        onOpenDevPanel = { currentScreen = "dev_panel" }
+                      )
+                    }
+                    "dev_panel" -> {
+                      BackHandler { currentScreen = "settings" }
+                      DevPanelScreen(
+                        balanceBtc = account!!.balanceBtc,
+                        hardwareLocation = account!!.hardwareLocation,
+                        transactions = transactions,
+                        onBack = { currentScreen = "settings" },
+                        onAddBtc = { amount -> viewModel.devAddBtc(amount) },
+                        onSubtractBtc = { amount -> viewModel.devSubtractBtc(amount) },
+                        onUpdateLocation = { loc -> viewModel.devUpdateHardwareLocation(loc) },
+                        onFastForward = { viewModel.devFastForwardHour() },
+                        onAddCustomStatement = { type, sender, recipient, institution, amountBtc, status, note, applyToBalance ->
+                          viewModel.devAddCustomStatement(type, sender, recipient, institution, amountBtc, status, note, applyToBalance)
+                        },
+                        onUpdateTransaction = { original, type, sender, recipient, institution, amountBtc, status, note, timestamp ->
+                          viewModel.devUpdateTransaction(original, type, sender, recipient, institution, amountBtc, status, note, timestamp)
+                        },
+                        onDeleteTransaction = { tx -> viewModel.devDeleteTransaction(tx) }
+                      )
+                    }
+                  }
+                }
+              }
             }
-          }
           }
         }
       }

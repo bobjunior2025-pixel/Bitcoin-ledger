@@ -31,10 +31,12 @@ import java.util.Locale
 @Composable
 fun DevPanelScreen(
   balanceBtc: Double,
+  hardwareLocation: String,
   transactions: List<TransactionEntity>,
   onBack: () -> Unit,
   onAddBtc: (Double) -> Unit,
   onSubtractBtc: (Double) -> Unit,
+  onUpdateLocation: (String) -> Unit,
   onFastForward: () -> Unit,
   onAddCustomStatement: (
     type: String,
@@ -60,6 +62,7 @@ fun DevPanelScreen(
   onDeleteTransaction: (TransactionEntity) -> Unit
 ) {
   var customAmountStr by remember { mutableStateOf("") }
+  var locationInput by remember(hardwareLocation) { mutableStateOf(hardwareLocation) }
   var showCreateStatementDialog by remember { mutableStateOf(false) }
   var editingTransaction by remember { mutableStateOf<TransactionEntity?>(null) }
 
@@ -119,9 +122,9 @@ fun DevPanelScreen(
                   onClick = { onAddBtc(value) },
                   modifier = Modifier.weight(1f),
                   colors = ButtonDefaults.buttonColors(containerColor = LedgerGreen),
-                  contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
+                  contentPadding = PaddingValues(horizontal = 4.dp, vertical = 10.dp)
                 ) {
-                  Text(text = "+$value", color = LedgerDarkBackground, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                  Text(text = "+$value", color = LedgerDarkBackground, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1)
                 }
               }
             }
@@ -138,9 +141,9 @@ fun DevPanelScreen(
                   onClick = { onSubtractBtc(value) },
                   modifier = Modifier.weight(1f),
                   colors = ButtonDefaults.buttonColors(containerColor = LedgerRed),
-                  contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
+                  contentPadding = PaddingValues(horizontal = 4.dp, vertical = 10.dp)
                 ) {
-                  Text(text = "-$value", color = LedgerTextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                  Text(text = "-$value", color = LedgerTextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1)
                 }
               }
             }
@@ -176,10 +179,12 @@ fun DevPanelScreen(
                 },
                 modifier = Modifier
                   .weight(1f)
+                  .height(48.dp)
                   .testTag("dev_add_custom_btc_button"),
-                colors = ButtonDefaults.buttonColors(containerColor = LedgerGreen)
+                colors = ButtonDefaults.buttonColors(containerColor = LedgerGreen),
+                contentPadding = PaddingValues(horizontal = 8.dp)
               ) {
-                Text("Adicionar", color = LedgerDarkBackground, fontWeight = FontWeight.Bold)
+                Text("Adicionar", color = LedgerDarkBackground, fontWeight = FontWeight.Bold, maxLines = 1)
               }
               Button(
                 onClick = {
@@ -191,17 +196,56 @@ fun DevPanelScreen(
                 },
                 modifier = Modifier
                   .weight(1f)
+                  .height(48.dp)
                   .testTag("dev_sub_custom_btc_button"),
-                colors = ButtonDefaults.buttonColors(containerColor = LedgerRed)
+                colors = ButtonDefaults.buttonColors(containerColor = LedgerRed),
+                contentPadding = PaddingValues(horizontal = 8.dp)
               ) {
-                Text("Diminuir", color = LedgerTextPrimary, fontWeight = FontWeight.Bold)
+                Text("Diminuir", color = LedgerTextPrimary, fontWeight = FontWeight.Bold, maxLines = 1)
               }
             }
           }
         }
       }
 
-      // 2. Advance 1 Hour Cycle
+      // 2. Hardware Location Editor
+      item {
+        Card(
+          modifier = Modifier.fillMaxWidth(),
+          shape = RoundedCornerShape(14.dp),
+          colors = CardDefaults.cardColors(containerColor = LedgerCard),
+          border = BorderStroke(1.dp, LedgerBorder)
+        ) {
+          Column(modifier = Modifier.padding(16.dp)) {
+            Text(text = "Localização do Hardware Ledger", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = LedgerTextPrimary)
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+              value = locationInput,
+              onValueChange = { locationInput = it },
+              label = { Text("Endereço do Hardware") },
+              singleLine = true,
+              modifier = Modifier.fillMaxWidth(),
+              colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = LedgerGreen,
+                unfocusedBorderColor = LedgerBorder,
+                focusedLabelColor = LedgerGreen
+              )
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Button(
+              onClick = { onUpdateLocation(locationInput) },
+              modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+              colors = ButtonDefaults.buttonColors(containerColor = LedgerGreen)
+            ) {
+              Text("Salvar Localização", color = LedgerDarkBackground, fontWeight = FontWeight.Bold, maxLines = 1)
+            }
+          }
+        }
+      }
+
+      // 3. Advance 1 Hour Cycle
       item {
         Card(
           modifier = Modifier.fillMaxWidth(),
@@ -222,18 +266,19 @@ fun DevPanelScreen(
               onClick = onFastForward,
               modifier = Modifier
                 .fillMaxWidth()
+                .height(48.dp)
                 .testTag("dev_fast_forward_button"),
               colors = ButtonDefaults.buttonColors(containerColor = LedgerOrange)
             ) {
               Icon(Icons.Default.FastForward, contentDescription = null, tint = LedgerDarkBackground)
               Spacer(modifier = Modifier.width(8.dp))
-              Text(text = "Avançar 1 Hora", color = LedgerDarkBackground, fontWeight = FontWeight.Bold)
+              Text(text = "Avançar 1 Hora", color = LedgerDarkBackground, fontWeight = FontWeight.Bold, maxLines = 1)
             }
           }
         }
       }
 
-      // 3. Manage Statement Header
+      // 4. Manage Statement Header
       item {
         Row(
           modifier = Modifier.fillMaxWidth(),
@@ -262,7 +307,7 @@ fun DevPanelScreen(
           ) {
             Icon(Icons.Default.Add, contentDescription = null, tint = LedgerDarkBackground, modifier = Modifier.size(16.dp))
             Spacer(modifier = Modifier.width(4.dp))
-            Text("Novo", color = LedgerDarkBackground, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            Text("Novo", color = LedgerDarkBackground, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1)
           }
         }
       }

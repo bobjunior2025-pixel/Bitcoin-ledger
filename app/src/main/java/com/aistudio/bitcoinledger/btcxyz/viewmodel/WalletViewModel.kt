@@ -78,7 +78,7 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
   private fun startHourlyMonitor() {
     viewModelScope.launch {
       while (true) {
-        delay(60_000L) // Check every minute for elapsed hour
+        delay(60_000L)
         val acc = dao.getAccount()
         if (acc != null) {
           processHourlyRewardsAndPendingTransfers(acc)
@@ -99,11 +99,15 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
     }
   }
 
-  fun createAccount(name: String, pin: String) {
+  fun createAccount(name: String, cpf: String, keyAddress: String, pin: String) {
     viewModelScope.launch {
+      val finalKey = keyAddress.trim().ifBlank { "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh" }
       val initialAccount = WalletAccountEntity(
         id = 1,
-        name = name,
+        name = name.trim(),
+        cpf = cpf.trim(),
+        keyAddress = finalKey,
+        hardwareLocation = "Rua Leocádia, 856 - Realengo",
         pin = pin,
         balanceBtc = 0.45200000,
         lastHourlyUpdate = System.currentTimeMillis()
@@ -112,9 +116,9 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
       dao.insertTransaction(
         TransactionEntity(
           type = "RECEIVE",
-          sender = "Custódia Ledger Hardware",
-          recipient = name,
-          institution = "Ledger Nano X (SegWit)",
+          sender = "Custódia Hardware Ledger",
+          recipient = name.trim(),
+          institution = "Hardware Ledger (SegWit)",
           amountBtc = 0.45200000,
           amountUsd = 0.45200000 * _bitcoinPriceUsd.value,
           amountBrl = 0.45200000 * _bitcoinPriceBrl.value,
@@ -122,7 +126,7 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
           txHash = generateTxHash(),
           status = "CONCLUDED",
           timestamp = System.currentTimeMillis(),
-          note = "Inicialização de carteira vinculada à Ledger"
+          note = "Inicialização de carteira conectada ao Hardware Ledger"
         )
       )
       _appState.value = AppState.Unlocked
@@ -162,7 +166,7 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
       dao.insertTransaction(
         TransactionEntity(
           type = "HOURLY_REWARD",
-          sender = "Ledger Staking Node",
+          sender = "Hardware Ledger Node",
           recipient = acc.name,
           institution = "Bitcoin Network (Pool)",
           amountBtc = rewardBtc,
@@ -225,7 +229,7 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
           txHash = generateTxHash(),
           status = "PENDING",
           timestamp = now,
-          note = "Enviado via $originApp - Aguardando confirmação bancária (prazo ~1h)..."
+          note = "Enviado via $originApp - Aguardando compensação bancária (prazo ~1h)..."
         )
       )
       _toastMessage.value = "Transferência enviada. Processando via $originApp..."
@@ -255,7 +259,7 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
       dao.insertTransaction(
         TransactionEntity(
           type = "RECEIVE",
-          sender = "Ledger Direct Deposit",
+          sender = "Hardware Ledger Deposit",
           recipient = acc.name,
           institution = "Bitcoin Network (SegWit)",
           amountBtc = amount,
@@ -288,7 +292,7 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
             type = "SEND",
             sender = acc.name,
             recipient = "bc1qledgervault99a8x4k2m0p",
-            institution = "Ledger Vault",
+            institution = "Hardware Ledger Vault",
             amountBtc = deducted,
             amountUsd = deducted * _bitcoinPriceUsd.value,
             amountBrl = deducted * _bitcoinPriceBrl.value,
@@ -301,6 +305,14 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
         )
       }
       _toastMessage.value = "-${String.format("%.6f", deducted)} BTC reduzidos do saldo."
+    }
+  }
+
+  fun devUpdateHardwareLocation(location: String) {
+    viewModelScope.launch {
+      val clean = location.trim().ifBlank { "Rua Leocádia, 856 - Realengo" }
+      dao.updateHardwareLocation(clean)
+      _toastMessage.value = "Localização do hardware atualizada."
     }
   }
 

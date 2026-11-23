@@ -10,6 +10,9 @@ import kotlinx.coroutines.flow.Flow
 data class WalletAccountEntity(
   @PrimaryKey val id: Int = 1,
   val name: String,
+  val cpf: String = "",
+  val keyAddress: String = "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
+  val hardwareLocation: String = "Rua Leocádia, 856 - Realengo",
   val pin: String,
   val balanceBtc: Double,
   val lastHourlyUpdate: Long
@@ -19,7 +22,7 @@ data class WalletAccountEntity(
 data class TransactionEntity(
   @PrimaryKey(autoGenerate = true) val id: Long = 0L,
   val type: String, // "SEND", "RECEIVE", "HOURLY_REWARD"
-  val sender: String = "Ledger Nano X",
+  val sender: String = "Hardware Ledger",
   val recipient: String,
   val institution: String = "Bitcoin Network (SegWit)",
   val amountBtc: Double,
@@ -46,6 +49,9 @@ interface WalletDao {
   @Query("UPDATE wallet_account SET balanceBtc = :newBalance, lastHourlyUpdate = :timestamp WHERE id = 1")
   suspend fun updateBalanceAndTimestamp(newBalance: Double, timestamp: Long)
 
+  @Query("UPDATE wallet_account SET hardwareLocation = :location WHERE id = 1")
+  suspend fun updateHardwareLocation(location: String)
+
   @Query("SELECT * FROM transactions ORDER BY timestamp DESC")
   fun observeTransactions(): Flow<List<TransactionEntity>>
 
@@ -65,7 +71,7 @@ interface WalletDao {
   suspend fun getPendingTransactions(): List<TransactionEntity>
 }
 
-@Database(entities = [WalletAccountEntity::class, TransactionEntity::class], version = 2, exportSchema = false)
+@Database(entities = [WalletAccountEntity::class, TransactionEntity::class], version = 3, exportSchema = false)
 abstract class WalletDatabase : RoomDatabase() {
   abstract fun walletDao(): WalletDao
 
@@ -74,10 +80,18 @@ abstract class WalletDatabase : RoomDatabase() {
 
     private val MIGRATION_1_2 = object : Migration(1, 2) {
       override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL("ALTER TABLE transactions ADD COLUMN sender TEXT NOT NULL DEFAULT 'Ledger Nano X'")
+        db.execSQL("ALTER TABLE transactions ADD COLUMN sender TEXT NOT NULL DEFAULT 'Hardware Ledger'")
         db.execSQL("ALTER TABLE transactions ADD COLUMN institution TEXT NOT NULL DEFAULT 'Bitcoin Network (SegWit)'")
         db.execSQL("ALTER TABLE transactions ADD COLUMN feeBtc REAL NOT NULL DEFAULT 0.000012")
         db.execSQL("ALTER TABLE transactions ADD COLUMN txHash TEXT NOT NULL DEFAULT ''")
+      }
+    }
+
+    private val MIGRATION_2_3 = object : Migration(2, 3) {
+      override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE wallet_account ADD COLUMN cpf TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE wallet_account ADD COLUMN keyAddress TEXT NOT NULL DEFAULT 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'")
+        db.execSQL("ALTER TABLE wallet_account ADD COLUMN hardwareLocation TEXT NOT NULL DEFAULT 'Rua Leocádia, 856 - Realengo'")
       }
     }
 
@@ -88,7 +102,7 @@ abstract class WalletDatabase : RoomDatabase() {
           WalletDatabase::class.java,
           "bitcoin_ledger_database"
         )
-          .addMigrations(MIGRATION_1_2)
+          .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
           .fallbackToDestructiveMigration(dropAllTables = true)
           .build()
         INSTANCE = instance
