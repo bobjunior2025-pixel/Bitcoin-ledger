@@ -117,6 +117,7 @@ class MainActivity : ComponentActivity() {
                       isDevUnlocked = isDevUnlocked,
                       onBack = { currentScreen = "home" },
                       onLockApp = { viewModel.lockApp() },
+                      onNavigateTransactions = { currentScreen = "transactions" },
                       onUnlockDev = { code -> viewModel.verifyDevPasscode(code) },
                       onOpenDevPanel = { currentScreen = "dev_panel" }
                     )
@@ -124,9 +125,19 @@ class MainActivity : ComponentActivity() {
                   "dev_panel" -> {
                     BackHandler { currentScreen = "settings" }
                     DevPanelScreen(
+                      balanceBtc = account!!.balanceBtc,
+                      transactions = transactions,
                       onBack = { currentScreen = "settings" },
                       onAddBtc = { amount -> viewModel.devAddBtc(amount) },
-                      onFastForward = { viewModel.devFastForwardHour() }
+                      onSubtractBtc = { amount -> viewModel.devSubtractBtc(amount) },
+                      onFastForward = { viewModel.devFastForwardHour() },
+                      onAddCustomStatement = { type, sender, recipient, institution, amountBtc, status, note, applyToBalance ->
+                        viewModel.devAddCustomStatement(type, sender, recipient, institution, amountBtc, status, note, applyToBalance)
+                      },
+                      onUpdateTransaction = { original, type, sender, recipient, institution, amountBtc, status, note, timestamp ->
+                        viewModel.devUpdateTransaction(original, type, sender, recipient, institution, amountBtc, status, note, timestamp)
+                      },
+                      onDeleteTransaction = { tx -> viewModel.devDeleteTransaction(tx) }
                     )
                   }
                 }

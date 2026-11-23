@@ -1,42 +1,35 @@
 package com.aistudio.bitcoinledger.btcxyz.ui.screens
 
-import android.widget.Toast
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aistudio.bitcoinledger.btcxyz.ui.theme.*
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(
   isDevUnlocked: Boolean,
   onBack: () -> Unit,
   onLockApp: () -> Unit,
+  onNavigateTransactions: () -> Unit,
   onUnlockDev: (String) -> Boolean,
   onOpenDevPanel: () -> Unit
 ) {
-  val context = LocalContext.current
-  val coroutineScope = rememberCoroutineScope()
-
   var showDevDialog by remember { mutableStateOf(false) }
   var devPinInput by remember { mutableStateOf("") }
   var devError by remember { mutableStateOf(false) }
-
-  var actionStatus by remember { mutableStateOf("Workflow v1.2.0 Concluído (Sucesso)") }
-  var isBuildingAction by remember { mutableStateOf(false) }
 
   Surface(
     modifier = Modifier.fillMaxSize(),
@@ -49,19 +42,48 @@ fun SettingsScreen(
     ) {
       Row(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
       ) {
-        IconButton(onClick = onBack, modifier = Modifier.testTag("back_button")) {
-          Icon(Icons.Default.ArrowBack, contentDescription = "Voltar", tint = LedgerTextPrimary)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+          IconButton(onClick = onBack, modifier = Modifier.testTag("back_button")) {
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar", tint = LedgerTextPrimary)
+          }
+          Spacer(modifier = Modifier.width(8.dp))
+          Text(
+            text = "Configurações",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = LedgerTextPrimary
+          )
         }
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(text = "Configurações", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = LedgerTextPrimary)
+
+        // Discreet small sun icon to trigger restricted access
+        IconButton(
+          onClick = {
+            if (isDevUnlocked) {
+              onOpenDevPanel()
+            } else {
+              showDevDialog = true
+            }
+          },
+          modifier = Modifier.testTag("secret_sun_button")
+        ) {
+          Icon(
+            imageVector = Icons.Default.WbSunny,
+            contentDescription = "Aparência",
+            tint = LedgerTextSecondary.copy(alpha = 0.65f),
+            modifier = Modifier.size(18.dp)
+          )
+        }
       }
 
       Spacer(modifier = Modifier.height(20.dp))
 
       Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+          .fillMaxWidth()
+          .testTag("lock_wallet_card"),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = LedgerCard),
         onClick = onLockApp
@@ -85,54 +107,26 @@ fun SettingsScreen(
       Spacer(modifier = Modifier.height(12.dp))
 
       Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+          .fillMaxWidth()
+          .testTag("statement_settings_card"),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = LedgerCard)
+        colors = CardDefaults.cardColors(containerColor = LedgerCard),
+        onClick = onNavigateTransactions
       ) {
-        Column(
+        Row(
           modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp)
+            .padding(16.dp),
+          verticalAlignment = Alignment.CenterVertically
         ) {
-          Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Code, contentDescription = null, tint = LedgerGreen)
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-              Text(text = "GitHub Actions CI/CD (APK Build)", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = LedgerTextPrimary)
-              Text(text = actionStatus, fontSize = 12.sp, color = if (isBuildingAction) LedgerOrange else LedgerGreen)
-            }
+          Icon(Icons.Default.ReceiptLong, contentDescription = null, tint = LedgerGreen)
+          Spacer(modifier = Modifier.width(16.dp))
+          Column(modifier = Modifier.weight(1f)) {
+            Text(text = "Extrato de Transferências", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = LedgerTextPrimary)
+            Text(text = "Comprovantes de envio e recebimento", fontSize = 12.sp, color = LedgerTextSecondary)
           }
-          Spacer(modifier = Modifier.height(12.dp))
-          Text(
-            text = "Arquivo de configuração .github/workflows/android-apk.yml integrado. Clique abaixo para disparar o pipeline de compilação automática do APK.",
-            fontSize = 11.sp,
-            color = LedgerTextSecondary
-          )
-          Spacer(modifier = Modifier.height(12.dp))
-          Button(
-            onClick = {
-              isBuildingAction = true
-              actionStatus = "Iniciando GitHub Action workflow..."
-              coroutineScope.launch {
-                delay(1200)
-                actionStatus = "Fazendo checkout do código e configurando JDK 17..."
-                delay(1500)
-                actionStatus = "Executando Gradle assembleDebug..."
-                delay(2000)
-                actionStatus = "APK gerado com sucesso! Artifact enviado."
-                isBuildingAction = false
-                Toast.makeText(context, "GitHub Action concluído! APK pronto.", Toast.LENGTH_LONG).show()
-              }
-            },
-            enabled = !isBuildingAction,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = LedgerGreen),
-            shape = RoundedCornerShape(8.dp)
-          ) {
-            Icon(Icons.Default.PlayArrow, contentDescription = null, tint = LedgerDarkBackground)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(text = if (isBuildingAction) "Executando Action..." else "Disparar GitHub Action (Build APK)", color = LedgerDarkBackground, fontWeight = FontWeight.Bold)
-          }
+          Icon(Icons.Default.ChevronRight, contentDescription = null, tint = LedgerTextSecondary)
         }
       }
 
@@ -141,14 +135,7 @@ fun SettingsScreen(
       Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = LedgerCard),
-        onClick = {
-          if (isDevUnlocked) {
-            onOpenDevPanel()
-          } else {
-            showDevDialog = true
-          }
-        }
+        colors = CardDefaults.cardColors(containerColor = LedgerCard)
       ) {
         Row(
           modifier = Modifier
@@ -156,13 +143,13 @@ fun SettingsScreen(
             .padding(16.dp),
           verticalAlignment = Alignment.CenterVertically
         ) {
-          Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = LedgerOrange)
+          Icon(Icons.Default.Security, contentDescription = null, tint = LedgerGreen)
           Spacer(modifier = Modifier.width(16.dp))
           Column(modifier = Modifier.weight(1f)) {
-            Text(text = "Função de Desenvolvedor (Secreto)", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = LedgerTextPrimary)
-            Text(text = if (isDevUnlocked) "Painel Desbloqueado (Toque para abrir)" else "Requer senha secreta (6565)", fontSize = 12.sp, color = LedgerTextSecondary)
+            Text(text = "Ledger Nano X", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = LedgerTextPrimary)
+            Text(text = "Assinatura por hardware ativa • Firmware v2.2.3", fontSize = 12.sp, color = LedgerTextSecondary)
           }
-          Icon(Icons.Default.ChevronRight, contentDescription = null, tint = LedgerTextSecondary)
+          Icon(Icons.Default.Verified, contentDescription = "Verificado", tint = LedgerGreen, modifier = Modifier.size(20.dp))
         }
       }
     }
@@ -170,12 +157,20 @@ fun SettingsScreen(
 
   if (showDevDialog) {
     AlertDialog(
-      onDismissRequest = { showDevDialog = false },
+      onDismissRequest = {
+        showDevDialog = false
+        devPinInput = ""
+        devError = false
+      },
       containerColor = LedgerCard,
-      title = { Text("Acesso Desenvolvedor", color = LedgerTextPrimary) },
+      title = { Text("Acesso Restrito", color = LedgerTextPrimary, fontWeight = FontWeight.Bold) },
       text = {
         Column {
-          Text("Digite a senha secreta (6565) para acessar as funções de desenvolvedor e gerenciamento de ativos:", color = LedgerTextSecondary, fontSize = 13.sp)
+          Text(
+            text = "Digite a senha de autorização para continuar:",
+            color = LedgerTextSecondary,
+            fontSize = 13.sp
+          )
           Spacer(modifier = Modifier.height(12.dp))
           OutlinedTextField(
             value = devPinInput,
@@ -183,9 +178,11 @@ fun SettingsScreen(
               devPinInput = it
               devError = false
             },
-            label = { Text("Senha Secreta") },
+            label = { Text("Senha") },
             visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
             isError = devError,
+            singleLine = true,
             modifier = Modifier
               .fillMaxWidth()
               .testTag("dev_passcode_input"),
@@ -209,18 +206,26 @@ fun SettingsScreen(
             if (ok) {
               showDevDialog = false
               devPinInput = ""
+              devError = false
               onOpenDevPanel()
             } else {
               devError = true
             }
           },
-          colors = ButtonDefaults.buttonColors(containerColor = LedgerGreen)
+          colors = ButtonDefaults.buttonColors(containerColor = LedgerGreen),
+          modifier = Modifier.testTag("confirm_dev_passcode_button")
         ) {
-          Text("Confirmar", color = LedgerDarkBackground)
+          Text("Confirmar", color = LedgerDarkBackground, fontWeight = FontWeight.Bold)
         }
       },
       dismissButton = {
-        TextButton(onClick = { showDevDialog = false }) {
+        TextButton(
+          onClick = {
+            showDevDialog = false
+            devPinInput = ""
+            devError = false
+          }
+        ) {
           Text("Cancelar", color = LedgerTextSecondary)
         }
       }

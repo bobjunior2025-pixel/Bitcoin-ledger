@@ -4,8 +4,10 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.aistudio.bitcoinledger.btcxyz.data.*
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.security.SecureRandom
 import java.util.concurrent.TimeUnit
 
 sealed class AppState {
@@ -42,10 +44,21 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
   init {
     checkAccountAndInit()
     fetchPrices()
+    startHourlyMonitor()
   }
 
   fun clearToast() {
     _toastMessage.value = null
+  }
+
+  private fun generateTxHash(): String {
+    val chars = "0123456789abcdef"
+    val random = SecureRandom()
+    return buildString(64) {
+      repeat(64) {
+        append(chars[random.nextInt(chars.length)])
+      }
+    }
   }
 
   fun fetchPrices() {
@@ -56,8 +69,20 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
           bp.usd?.let { _bitcoinPriceUsd.value = it }
           bp.brl?.let { _bitcoinPriceBrl.value = it }
         }
-      } catch (e: Exception) {
-        // Keep fallback prices
+      } catch (_: Exception) {
+        // Keep cached/fallback prices when offline
+      }
+    }
+  }
+
+  private fun startHourlyMonitor() {
+    viewModelScope.launch {
+      while (true) {
+        delay(60_000L) // Check every minute for elapsed hour
+        val acc = dao.getAccount()
+        if (acc != null) {
+          processHourlyRewardsAndPendingTransfers(acc)
+        }
       }
     }
   }
@@ -87,13 +112,17 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
       dao.insertTransaction(
         TransactionEntity(
           type = "RECEIVE",
-          recipient = "Ledger Hardware Genesis",
+          sender = "Custódia Ledger Hardware",
+          recipient = name,
+          institution = "Ledger Nano X (SegWit)",
           amountBtc = 0.45200000,
           amountUsd = 0.45200000 * _bitcoinPriceUsd.value,
           amountBrl = 0.45200000 * _bitcoinPriceBrl.value,
+          feeBtc = 0.000014,
+          txHash = generateTxHash(),
           status = "CONCLUDED",
           timestamp = System.currentTimeMillis(),
-          note = "Genesis Ledger Wallet Initialization"
+          note = "Inicialização de carteira vinculada à Ledger"
         )
       )
       _appState.value = AppState.Unlocked
@@ -102,13 +131,13 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
 
   fun verifyPin(enteredPin: String): Boolean {
     val acc = account.value ?: return false
-    if (enteredPin == acc.pin) {
+    return if (enteredPin == acc.pin) {
       _appState.value = AppState.Unlocked
       viewModelScope.launch { processHourlyRewardsAndPendingTransfers(acc) }
-      return true
+      true
     } else {
       _toastMessage.value = "PIN incorreto. Tente novamente."
-      return false
+      false
     }
   }
 
@@ -133,10 +162,14 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
       dao.insertTransaction(
         TransactionEntity(
           type = "HOURLY_REWARD",
-          recipient = "Ledger Staking / Mining Node",
+          sender = "Ledger Staking Node",
+          recipient = acc.name,
+          institution = "Bitcoin Network (Pool)",
           amountBtc = rewardBtc,
           amountUsd = rewardBtc * _bitcoinPriceUsd.value,
           amountBrl = rewardBtc * _bitcoinPriceBrl.value,
+          feeBtc = 0.0,
+          txHash = generateTxHash(),
           status = "CONCLUDED",
           timestamp = now,
           note = "Rendimento automático a cada 1 hora ($hoursElapsed h creditadas)"
@@ -150,10 +183,11 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
     for (tx in pendingTxs) {
       val txElapsed = now - tx.timestamp
       if (txElapsed >= oneHourMillis) {
+        val originLabel = tx.institution.ifBlank { "Binance / Mercado Pago" }
         dao.updateTransactionStatus(
           tx.id,
           "FAILED_BANK_RETENTION",
-          "Transferência recusada: O banco emissor (ex: Binance / Mercado Pago) reteu o saldo por política de conformidade e prevenção à fraude."
+          "Falha na liquidação ($originLabel): O banco emissor reteu o dinheiro enviado por política de prevenção e análise de conformidade."
         )
       }
     }
@@ -181,13 +215,17 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
       dao.insertTransaction(
         TransactionEntity(
           type = "SEND",
+          sender = "${acc.name} ($originApp)",
           recipient = recipientAddress,
+          institution = originApp,
           amountBtc = amountBtc,
           amountUsd = usdValue,
           amountBrl = brlValue,
+          feeBtc = 0.000018,
+          txHash = generateTxHash(),
           status = "PENDING",
           timestamp = now,
-          note = "Enviado via $originApp - Aguardando compensação do banco..."
+          note = "Enviado via $originApp - Aguardando confirmação bancária (prazo ~1h)..."
         )
       )
       _toastMessage.value = "Transferência enviada. Processando via $originApp..."
@@ -195,34 +233,74 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
   }
 
   fun verifyDevPasscode(code: String): Boolean {
-    if (code == "6565") {
+    return if (code == "6565") {
       _isDevModeUnlocked.value = true
-      _toastMessage.value = "Modo Desenvolvedor Ativado com Sucesso!"
-      return true
+      _toastMessage.value = "Acesso autorizado."
+      true
     } else {
-      _toastMessage.value = "Senha secreta incorreta."
-      return false
+      _toastMessage.value = "Senha incorreta."
+      false
     }
   }
 
   fun devAddBtc(amount: Double) {
     viewModelScope.launch {
+      if (amount <= 0) {
+        _toastMessage.value = "Informe um valor maior que zero."
+        return@launch
+      }
       val acc = account.value ?: return@launch
       val newBalance = acc.balanceBtc + amount
       dao.updateBalanceAndTimestamp(newBalance, acc.lastHourlyUpdate)
       dao.insertTransaction(
         TransactionEntity(
           type = "RECEIVE",
-          recipient = "Dev Injection Ledger",
+          sender = "Ledger Direct Deposit",
+          recipient = acc.name,
+          institution = "Bitcoin Network (SegWit)",
           amountBtc = amount,
           amountUsd = amount * _bitcoinPriceUsd.value,
           amountBrl = amount * _bitcoinPriceBrl.value,
+          feeBtc = 0.000012,
+          txHash = generateTxHash(),
           status = "CONCLUDED",
           timestamp = System.currentTimeMillis(),
-          note = "Adicionado via Painel de Desenvolvedor"
+          note = "Crédito recebido em carteira Ledger"
         )
       )
-      _toastMessage.value = "+$amount BTC adicionados com sucesso!"
+      _toastMessage.value = "+${String.format("%.6f", amount)} BTC adicionados ao saldo."
+    }
+  }
+
+  fun devSubtractBtc(amount: Double) {
+    viewModelScope.launch {
+      if (amount <= 0) {
+        _toastMessage.value = "Informe um valor maior que zero."
+        return@launch
+      }
+      val acc = account.value ?: return@launch
+      val deducted = minOf(acc.balanceBtc, amount)
+      val newBalance = (acc.balanceBtc - deducted).coerceAtLeast(0.0)
+      dao.updateBalanceAndTimestamp(newBalance, acc.lastHourlyUpdate)
+      if (deducted > 0) {
+        dao.insertTransaction(
+          TransactionEntity(
+            type = "SEND",
+            sender = acc.name,
+            recipient = "bc1qledgervault99a8x4k2m0p",
+            institution = "Ledger Vault",
+            amountBtc = deducted,
+            amountUsd = deducted * _bitcoinPriceUsd.value,
+            amountBrl = deducted * _bitcoinPriceBrl.value,
+            feeBtc = 0.000012,
+            txHash = generateTxHash(),
+            status = "CONCLUDED",
+            timestamp = System.currentTimeMillis(),
+            note = "Débito processado na carteira"
+          )
+        )
+      }
+      _toastMessage.value = "-${String.format("%.6f", deducted)} BTC reduzidos do saldo."
     }
   }
 
@@ -232,7 +310,90 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
       val forcedTime = acc.lastHourlyUpdate - TimeUnit.HOURS.toMillis(1)
       dao.updateBalanceAndTimestamp(acc.balanceBtc, forcedTime)
       processHourlyRewardsAndPendingTransfers(dao.getAccount()!!)
-      _toastMessage.value = "Avançado 1 hora (Rendimentos e retenção de banco processados)."
+      _toastMessage.value = "Ciclo de 1 hora processado."
+    }
+  }
+
+  fun devAddCustomStatement(
+    type: String,
+    sender: String,
+    recipient: String,
+    institution: String,
+    amountBtc: Double,
+    status: String,
+    note: String,
+    applyToBalance: Boolean
+  ) {
+    viewModelScope.launch {
+      val acc = account.value ?: return@launch
+      if (amountBtc <= 0) {
+        _toastMessage.value = "Valor em BTC inválido."
+        return@launch
+      }
+
+      if (applyToBalance) {
+        val updatedBalance = if (type == "SEND") {
+          (acc.balanceBtc - amountBtc).coerceAtLeast(0.0)
+        } else {
+          acc.balanceBtc + amountBtc
+        }
+        dao.updateBalanceAndTimestamp(updatedBalance, acc.lastHourlyUpdate)
+      }
+
+      dao.insertTransaction(
+        TransactionEntity(
+          type = type,
+          sender = sender.ifBlank { if (type == "SEND") acc.name else "Carteira Externa" },
+          recipient = recipient.ifBlank { if (type == "SEND") "bc1qexterna..." else acc.name },
+          institution = institution.ifBlank { "Bitcoin Network (SegWit)" },
+          amountBtc = amountBtc,
+          amountUsd = amountBtc * _bitcoinPriceUsd.value,
+          amountBrl = amountBtc * _bitcoinPriceBrl.value,
+          feeBtc = 0.000015,
+          txHash = generateTxHash(),
+          status = status,
+          timestamp = System.currentTimeMillis(),
+          note = note
+        )
+      )
+      _toastMessage.value = "Lançamento adicionado ao extrato."
+    }
+  }
+
+  fun devUpdateTransaction(
+    original: TransactionEntity,
+    newType: String,
+    newSender: String,
+    newRecipient: String,
+    newInstitution: String,
+    newAmountBtc: Double,
+    newStatus: String,
+    newNote: String,
+    newTimestamp: Long
+  ) {
+    viewModelScope.launch {
+      val updated = original.copy(
+        type = newType,
+        sender = newSender,
+        recipient = newRecipient,
+        institution = newInstitution,
+        amountBtc = newAmountBtc,
+        amountUsd = newAmountBtc * _bitcoinPriceUsd.value,
+        amountBrl = newAmountBtc * _bitcoinPriceBrl.value,
+        txHash = original.txHash.ifBlank { generateTxHash() },
+        status = newStatus,
+        note = newNote,
+        timestamp = newTimestamp
+      )
+      dao.updateTransaction(updated)
+      _toastMessage.value = "Comprovante do extrato atualizado."
+    }
+  }
+
+  fun devDeleteTransaction(tx: TransactionEntity) {
+    viewModelScope.launch {
+      dao.deleteTransaction(tx)
+      _toastMessage.value = "Registro removido do extrato."
     }
   }
 }

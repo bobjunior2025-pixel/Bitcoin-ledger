@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aistudio.bitcoinledger.btcxyz.data.TransactionEntity
 import com.aistudio.bitcoinledger.btcxyz.data.WalletAccountEntity
+import com.aistudio.bitcoinledger.btcxyz.ui.components.StatementReceiptDialog
+import com.aistudio.bitcoinledger.btcxyz.ui.components.TransactionItemCard
 import com.aistudio.bitcoinledger.btcxyz.ui.theme.*
 import java.text.NumberFormat
 import java.util.Locale
@@ -34,6 +36,8 @@ fun HomeScreen(
   onNavigateTransactions: () -> Unit,
   onNavigateSettings: () -> Unit
 ) {
+  var selectedTransaction by remember { mutableStateOf<TransactionEntity?>(null) }
+
   val btcBalance = account.balanceBtc
   val usdValue = btcBalance * priceUsd
   val brlValue = btcBalance * priceBrl
@@ -160,7 +164,7 @@ fun HomeScreen(
 
       Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
       ) {
         Button(
           onClick = onNavigateSend,
@@ -171,9 +175,9 @@ fun HomeScreen(
           colors = ButtonDefaults.buttonColors(containerColor = LedgerGreen),
           shape = RoundedCornerShape(12.dp)
         ) {
-          Icon(Icons.Default.ArrowUpward, contentDescription = null, tint = LedgerDarkBackground)
-          Spacer(modifier = Modifier.width(8.dp))
-          Text(text = "Enviar", fontWeight = FontWeight.Bold, color = LedgerDarkBackground, fontSize = 15.sp)
+          Icon(Icons.Default.ArrowUpward, contentDescription = null, tint = LedgerDarkBackground, modifier = Modifier.size(18.dp))
+          Spacer(modifier = Modifier.width(6.dp))
+          Text(text = "Enviar", fontWeight = FontWeight.Bold, color = LedgerDarkBackground, fontSize = 14.sp)
         }
 
         Button(
@@ -186,9 +190,24 @@ fun HomeScreen(
           shape = RoundedCornerShape(12.dp),
           border = BorderStroke(1.dp, LedgerBorder)
         ) {
-          Icon(Icons.Default.ArrowDownward, contentDescription = null, tint = LedgerGreen)
-          Spacer(modifier = Modifier.width(8.dp))
-          Text(text = "Receber", fontWeight = FontWeight.Bold, color = LedgerTextPrimary, fontSize = 15.sp)
+          Icon(Icons.Default.ArrowDownward, contentDescription = null, tint = LedgerGreen, modifier = Modifier.size(18.dp))
+          Spacer(modifier = Modifier.width(6.dp))
+          Text(text = "Receber", fontWeight = FontWeight.Bold, color = LedgerTextPrimary, fontSize = 14.sp)
+        }
+
+        OutlinedButton(
+          onClick = onNavigateTransactions,
+          modifier = Modifier
+            .weight(1f)
+            .height(50.dp)
+            .testTag("statement_button"),
+          shape = RoundedCornerShape(12.dp),
+          border = BorderStroke(1.dp, LedgerBorder),
+          colors = ButtonDefaults.outlinedButtonColors(contentColor = LedgerTextPrimary)
+        ) {
+          Icon(Icons.Default.ReceiptLong, contentDescription = null, tint = LedgerGreen, modifier = Modifier.size(18.dp))
+          Spacer(modifier = Modifier.width(6.dp))
+          Text(text = "Extrato", fontWeight = FontWeight.Bold, fontSize = 14.sp)
         }
       }
 
@@ -199,15 +218,15 @@ fun HomeScreen(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
       ) {
-        Text(text = "Histórico de Transações", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = LedgerTextPrimary)
+        Text(text = "Últimas Movimentações", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = LedgerTextPrimary)
         TextButton(onClick = onNavigateTransactions) {
-          Text(text = "Ver Todas", color = LedgerGreen, fontSize = 13.sp)
+          Text(text = "Ver Extrato", color = LedgerGreen, fontSize = 13.sp)
         }
       }
 
       Spacer(modifier = Modifier.height(8.dp))
 
-      val recentTxs = transactions.take(4)
+      val recentTxs = transactions.take(5)
       if (recentTxs.isEmpty()) {
         Box(
           modifier = Modifier
@@ -222,96 +241,21 @@ fun HomeScreen(
           modifier = Modifier.weight(1f),
           verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-          items(recentTxs) { tx ->
-            TransactionItemCard(tx = tx)
+          items(recentTxs, key = { it.id }) { tx ->
+            TransactionItemCard(
+              tx = tx,
+              onClick = { selectedTransaction = tx }
+            )
           }
         }
       }
     }
   }
-}
 
-@Composable
-fun TransactionItemCard(tx: TransactionEntity) {
-  val isSend = tx.type == "SEND"
-  val isReward = tx.type == "HOURLY_REWARD"
-  val currencyBrlFormat = NumberFormat.getCurrencyInstance(Locale.Builder().setLanguage("pt").setRegion("BR").build())
-
-  val statusColor = when (tx.status) {
-    "CONCLUDED" -> LedgerGreen
-    "PENDING" -> LedgerOrange
-    "FAILED_BANK_RETENTION" -> LedgerRed
-    else -> LedgerTextSecondary
-  }
-
-  val statusText = when (tx.status) {
-    "CONCLUDED" -> "Concluído"
-    "PENDING" -> "Pendente (Aguardando)"
-    "FAILED_BANK_RETENTION" -> "Falhou: Banco reteu o valor"
-    else -> tx.status
-  }
-
-  Card(
-    modifier = Modifier.fillMaxWidth(),
-    shape = RoundedCornerShape(12.dp),
-    colors = CardDefaults.cardColors(containerColor = LedgerCard)
-  ) {
-    Row(
-      modifier = Modifier
-        .fillMaxWidth()
-        .padding(14.dp),
-      horizontalArrangement = Arrangement.SpaceBetween,
-      verticalAlignment = Alignment.CenterVertically
-    ) {
-      Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-          modifier = Modifier
-            .size(40.dp)
-            .background(if (isSend) LedgerRed.copy(alpha = 0.15f) else LedgerGreen.copy(alpha = 0.15f), CircleShape),
-          contentAlignment = Alignment.Center
-        ) {
-          Icon(
-            imageVector = when {
-              isSend -> Icons.Default.CallMade
-              isReward -> Icons.Default.Autorenew
-              else -> Icons.Default.CallReceived
-            },
-            contentDescription = null,
-            tint = if (isSend) LedgerRed else LedgerGreen,
-            modifier = Modifier.size(20.dp)
-          )
-        }
-        Spacer(modifier = Modifier.width(12.dp))
-        Column {
-          Text(
-            text = if (isSend) "Envio para ${tx.recipient.take(12)}..." else if (isReward) "Rendimento Automático" else "Recebimento",
-            fontWeight = FontWeight.Bold,
-            fontSize = 14.sp,
-            color = LedgerTextPrimary
-          )
-          Spacer(modifier = Modifier.height(2.dp))
-          Text(text = statusText, fontSize = 11.sp, color = statusColor)
-          if (tx.note.isNotBlank()) {
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(text = tx.note, fontSize = 10.sp, color = LedgerTextSecondary, maxLines = 1)
-          }
-        }
-      }
-
-      Column(horizontalAlignment = Alignment.End) {
-        Text(
-          text = "${if (isSend) "-" else "+"}${String.format(Locale.US, "%.6f", tx.amountBtc)} BTC",
-          fontWeight = FontWeight.Bold,
-          fontSize = 13.sp,
-          color = if (isSend) LedgerRed else LedgerGreen
-        )
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(
-          text = currencyBrlFormat.format(tx.amountBrl),
-          fontSize = 11.sp,
-          color = LedgerTextSecondary
-        )
-      }
-    }
+  selectedTransaction?.let { tx ->
+    StatementReceiptDialog(
+      tx = tx,
+      onDismiss = { selectedTransaction = null }
+    )
   }
 }
