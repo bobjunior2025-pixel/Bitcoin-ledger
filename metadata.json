@@ -1,0 +1,6 @@
+{
+  "name": "Bitcoin Ledger",
+  "description": "Bitcoin wallet simulation with Ledger integration, multi-currency display, and transfer features.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
