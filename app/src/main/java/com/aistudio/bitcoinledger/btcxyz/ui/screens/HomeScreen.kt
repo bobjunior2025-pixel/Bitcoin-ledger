@@ -13,7 +13,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -131,7 +130,38 @@ fun HomeScreen(
         }
       }
 
-      Spacer(modifier = Modifier.height(18.dp))
+      Spacer(modifier = Modifier.height(12.dp))
+
+      // Confidential Secret Banner for Jhonatan's Ledger Account
+      Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = LedgerCard,
+        border = BorderStroke(1.dp, LedgerOrange.copy(alpha = 0.45f))
+      ) {
+        Row(
+          modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+          Icon(
+            imageVector = Icons.Default.VerifiedUser,
+            contentDescription = "Acesso Secreto",
+            tint = LedgerOrange,
+            modifier = Modifier.size(16.dp)
+          )
+          Spacer(modifier = Modifier.width(8.dp))
+          Text(
+            text = "App secreto conectado à conta Ledger de Jhonatan",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = LedgerTextPrimary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+          )
+        }
+      }
+
+      Spacer(modifier = Modifier.height(14.dp))
 
       // Balance Card
       Card(
@@ -223,9 +253,9 @@ fun HomeScreen(
         }
       }
 
-      Spacer(modifier = Modifier.height(18.dp))
+      Spacer(modifier = Modifier.height(16.dp))
 
-      // Redesigned Crisp Action Buttons (Icon on top + single-line label below)
+      // Redesigned Crisp Action Buttons
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -259,7 +289,7 @@ fun HomeScreen(
         )
       }
 
-      Spacer(modifier = Modifier.height(22.dp))
+      Spacer(modifier = Modifier.height(20.dp))
 
       Row(
         modifier = Modifier.fillMaxWidth(),

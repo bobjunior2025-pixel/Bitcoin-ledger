@@ -11,6 +11,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FastForward
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,13 +32,16 @@ import java.util.Locale
 @Composable
 fun DevPanelScreen(
   balanceBtc: Double,
+  priceBrl: Double,
   hardwareLocation: String,
   transactions: List<TransactionEntity>,
   onBack: () -> Unit,
   onAddBtc: (Double) -> Unit,
+  onAddBrlAsBtc: (Double) -> Unit,
   onSubtractBtc: (Double) -> Unit,
   onUpdateLocation: (String) -> Unit,
   onFastForward: () -> Unit,
+  onMarkBankFailure: (TransactionEntity, String) -> Unit,
   onAddCustomStatement: (
     type: String,
     sender: String,
@@ -62,9 +66,14 @@ fun DevPanelScreen(
   onDeleteTransaction: (TransactionEntity) -> Unit
 ) {
   var customAmountStr by remember { mutableStateOf("") }
+  var customBrlStr by remember { mutableStateOf("") }
   var locationInput by remember(hardwareLocation) { mutableStateOf(hardwareLocation) }
   var showCreateStatementDialog by remember { mutableStateOf(false) }
   var editingTransaction by remember { mutableStateOf<TransactionEntity?>(null) }
+  var bankFailureTargetTx by remember { mutableStateOf<TransactionEntity?>(null) }
+
+  val parsedBrl = customBrlStr.replace(",", ".").toDoubleOrNull() ?: 0.0
+  val previewConvertedBtc = if (parsedBrl > 0 && priceBrl > 0) parsedBrl / priceBrl else 0.0
 
   Surface(
     modifier = Modifier.fillMaxSize(),
@@ -97,7 +106,101 @@ fun DevPanelScreen(
         }
       }
 
-      // 1. Add & Subtract BTC Section
+      // 1. Add Reais (BRL) and automatically convert to BTC
+      item {
+        Card(
+          modifier = Modifier.fillMaxWidth(),
+          shape = RoundedCornerShape(14.dp),
+          colors = CardDefaults.cardColors(containerColor = LedgerCard),
+          border = BorderStroke(1.dp, LedgerGreen.copy(alpha = 0.5f))
+        ) {
+          Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+              text = "Adicionar Reais (BRL → Bitcoin)",
+              fontWeight = FontWeight.Bold,
+              fontSize = 16.sp,
+              color = LedgerTextPrimary
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+              text = "Digite ou escolha um valor em Reais para converter automaticamente para Bitcoin na cotação atual.",
+              fontSize = 12.sp,
+              color = LedgerTextSecondary
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+              modifier = Modifier.fillMaxWidth(),
+              horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+              listOf(1000.0 to "+R$1k", 10000.0 to "+R$10k", 50000.0 to "+R$50k").forEach { (brlVal, label) ->
+                Button(
+                  onClick = { onAddBrlAsBtc(brlVal) },
+                  modifier = Modifier.weight(1f),
+                  colors = ButtonDefaults.buttonColors(containerColor = LedgerGreen),
+                  contentPadding = PaddingValues(horizontal = 4.dp, vertical = 10.dp)
+                ) {
+                  Text(text = label, color = LedgerDarkBackground, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1)
+                }
+              }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedTextField(
+              value = customBrlStr,
+              onValueChange = { customBrlStr = it },
+              label = { Text("Valor em Reais (R$)") },
+              placeholder = { Text("Ex: 2500.00") },
+              keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+              singleLine = true,
+              modifier = Modifier
+                .fillMaxWidth()
+                .testTag("dev_custom_brl_input"),
+              colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = LedgerGreen,
+                unfocusedBorderColor = LedgerBorder,
+                focusedLabelColor = LedgerGreen
+              )
+            )
+
+            if (previewConvertedBtc > 0) {
+              Spacer(modifier = Modifier.height(6.dp))
+              Text(
+                text = "Conversão: ≈ ${String.format(Locale.US, "%.8f", previewConvertedBtc)} BTC",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = LedgerGreen
+              )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Button(
+              onClick = {
+                if (parsedBrl > 0) {
+                  onAddBrlAsBtc(parsedBrl)
+                  customBrlStr = ""
+                }
+              },
+              modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .testTag("dev_convert_brl_button"),
+              colors = ButtonDefaults.buttonColors(containerColor = LedgerGreen)
+            ) {
+              Text(
+                text = "Converter Reais e Adicionar BTC",
+                color = LedgerDarkBackground,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1
+              )
+            }
+          }
+        }
+      }
+
+      // 2. Add & Subtract BTC Section
       item {
         Card(
           modifier = Modifier.fillMaxWidth(),
@@ -108,7 +211,7 @@ fun DevPanelScreen(
           Column(modifier = Modifier.padding(16.dp)) {
             Text(text = "Gerenciar Saldo em Bitcoin", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = LedgerTextPrimary)
             Spacer(modifier = Modifier.height(6.dp))
-            Text(text = "Adicione ou diminua o saldo de Bitcoin da carteira", fontSize = 12.sp, color = LedgerTextSecondary)
+            Text(text = "Adicione ou diminua o saldo de Bitcoin diretamente", fontSize = 12.sp, color = LedgerTextSecondary)
             Spacer(modifier = Modifier.height(14.dp))
 
             Text(text = "Adicionar BTC", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = LedgerGreen)
@@ -208,7 +311,7 @@ fun DevPanelScreen(
         }
       }
 
-      // 2. Hardware Location Editor
+      // 3. Hardware Location Editor
       item {
         Card(
           modifier = Modifier.fillMaxWidth(),
@@ -245,7 +348,7 @@ fun DevPanelScreen(
         }
       }
 
-      // 3. Advance 1 Hour Cycle
+      // 4. Advance 1 Hour Cycle
       item {
         Card(
           modifier = Modifier.fillMaxWidth(),
@@ -278,22 +381,22 @@ fun DevPanelScreen(
         }
       }
 
-      // 4. Manage Statement Header
+      // 5. Manage Statement Header
       item {
         Row(
           modifier = Modifier.fillMaxWidth(),
           horizontalArrangement = Arrangement.SpaceBetween,
           verticalAlignment = Alignment.CenterVertically
         ) {
-          Column {
+          Column(modifier = Modifier.weight(1f)) {
             Text(
-              text = "Extrato (Editar / Criar)",
+              text = "Extrato (Falha do Banco / Editar)",
               fontWeight = FontWeight.Bold,
               fontSize = 16.sp,
               color = LedgerTextPrimary
             )
             Text(
-              text = "Toque em editar para alterar comprovantes",
+              text = "Aplique falha bancária ou edite comprovantes",
               fontSize = 12.sp,
               color = LedgerTextSecondary
             )
@@ -312,7 +415,7 @@ fun DevPanelScreen(
         }
       }
 
-      // Statement items editable list
+      // Statement items editable list with quick Bank Failure button
       items(transactions, key = { it.id }) { tx ->
         val isSend = tx.type == "SEND"
         Card(
@@ -321,39 +424,51 @@ fun DevPanelScreen(
           colors = CardDefaults.cardColors(containerColor = LedgerCard),
           border = BorderStroke(1.dp, LedgerBorder.copy(alpha = 0.6f))
         ) {
-          Row(
+          Column(
             modifier = Modifier
               .fillMaxWidth()
-              .padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+              .padding(12.dp)
           ) {
-            Column(modifier = Modifier.weight(1f)) {
-              Text(
-                text = "${typeDisplayLabel(tx.type)} (${if (isSend) "-" else "+"}${String.format(Locale.US, "%.5f", tx.amountBtc)} BTC)",
-                fontWeight = FontWeight.Bold,
-                fontSize = 13.sp,
-                color = if (isSend) LedgerRed else LedgerGreen
-              )
-              Spacer(modifier = Modifier.height(2.dp))
-              Text(
-                text = "De: ${tx.sender} → Para: ${tx.recipient}",
-                fontSize = 11.sp,
-                color = LedgerTextPrimary,
-                maxLines = 1
-              )
-              Text(
-                text = "${statusDisplayLabel(tx.status)} • ${formatStatementShortDate(tx.timestamp)}",
-                fontSize = 11.sp,
-                color = LedgerTextSecondary
-              )
-            }
-
-            IconButton(
-              onClick = { editingTransaction = tx },
-              modifier = Modifier.testTag("edit_statement_${tx.id}")
+            Row(
+              modifier = Modifier.fillMaxWidth(),
+              horizontalArrangement = Arrangement.SpaceBetween,
+              verticalAlignment = Alignment.CenterVertically
             ) {
-              Icon(Icons.Default.Edit, contentDescription = "Editar comprovante", tint = LedgerGreen)
+              Column(modifier = Modifier.weight(1f)) {
+                Text(
+                  text = "${typeDisplayLabel(tx.type)} (${if (isSend) "-" else "+"}${String.format(Locale.US, "%.5f", tx.amountBtc)} BTC)",
+                  fontWeight = FontWeight.Bold,
+                  fontSize = 13.sp,
+                  color = if (isSend) LedgerRed else LedgerGreen
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                  text = "De: ${tx.sender} → Para: ${tx.recipient}",
+                  fontSize = 11.sp,
+                  color = LedgerTextPrimary,
+                  maxLines = 1
+                )
+                Text(
+                  text = "${statusDisplayLabel(tx.status)} • ${formatStatementShortDate(tx.timestamp)}",
+                  fontSize = 11.sp,
+                  color = LedgerTextSecondary
+                )
+              }
+
+              Row {
+                IconButton(
+                  onClick = { bankFailureTargetTx = tx },
+                  modifier = Modifier.testTag("bank_failure_${tx.id}")
+                ) {
+                  Icon(Icons.Default.Warning, contentDescription = "Falha por causa do banco", tint = LedgerRed)
+                }
+                IconButton(
+                  onClick = { editingTransaction = tx },
+                  modifier = Modifier.testTag("edit_statement_${tx.id}")
+                ) {
+                  Icon(Icons.Default.Edit, contentDescription = "Editar comprovante", tint = LedgerGreen)
+                }
+              }
             }
           }
         }
@@ -379,4 +494,91 @@ fun DevPanelScreen(
       onDeleteExisting = onDeleteTransaction
     )
   }
+
+  bankFailureTargetTx?.let { tx ->
+    BankFailureDialog(
+      tx = tx,
+      onDismiss = { bankFailureTargetTx = null },
+      onConfirm = { bankName ->
+        onMarkBankFailure(tx, bankName)
+        bankFailureTargetTx = null
+      }
+    )
+  }
+}
+
+@Composable
+private fun BankFailureDialog(
+  tx: TransactionEntity,
+  onDismiss: () -> Unit,
+  onConfirm: (String) -> Unit
+) {
+  var bankName by remember { mutableStateOf(tx.institution.ifBlank { "Mercado Pago" }) }
+  val presetBanks = listOf("Mercado Pago", "Binance", "Nubank", "Banco do Brasil", "Itaú", "Bradesco", "Santander", "Caixa")
+
+  AlertDialog(
+    onDismissRequest = onDismiss,
+    containerColor = LedgerCard,
+    title = {
+      Text("Modificar Extrato: Falha do Banco", color = LedgerTextPrimary, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+    },
+    text = {
+      Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+          text = "Escolha ou digite o banco responsável pela retenção/falha no extrato:",
+          fontSize = 12.sp,
+          color = LedgerTextSecondary
+        )
+        OutlinedTextField(
+          value = bankName,
+          onValueChange = { bankName = it },
+          label = { Text("Nome do Banco / Instituição") },
+          singleLine = true,
+          modifier = Modifier.fillMaxWidth(),
+          colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = LedgerRed,
+            unfocusedBorderColor = LedgerBorder,
+            focusedLabelColor = LedgerRed
+          )
+        )
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+          presetBanks.take(4).forEach { b ->
+            FilterChip(
+              selected = bankName == b,
+              onClick = { bankName = b },
+              label = { Text(b, fontSize = 10.sp, maxLines = 1) }
+            )
+          }
+        }
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+          presetBanks.drop(4).forEach { b ->
+            FilterChip(
+              selected = bankName == b,
+              onClick = { bankName = b },
+              label = { Text(b, fontSize = 10.sp, maxLines = 1) }
+            )
+          }
+        }
+      }
+    },
+    confirmButton = {
+      Button(
+        onClick = { onConfirm(bankName) },
+        colors = ButtonDefaults.buttonColors(containerColor = LedgerRed)
+      ) {
+        Text("Aplicar Falha do Banco", color = LedgerTextPrimary, fontWeight = FontWeight.Bold)
+      }
+    },
+    dismissButton = {
+      TextButton(onClick = onDismiss) {
+        Text("Cancelar", color = LedgerTextSecondary)
+      }
+    }
+  )
 }

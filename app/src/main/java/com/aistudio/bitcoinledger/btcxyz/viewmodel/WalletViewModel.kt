@@ -8,6 +8,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.security.SecureRandom
+import java.text.NumberFormat
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 sealed class AppState {
@@ -116,7 +118,7 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
       dao.insertTransaction(
         TransactionEntity(
           type = "RECEIVE",
-          sender = "Custódia Hardware Ledger",
+          sender = "Custódia Hardware Ledger (Jhonatan)",
           recipient = name.trim(),
           institution = "Hardware Ledger (SegWit)",
           amountBtc = 0.45200000,
@@ -126,15 +128,24 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
           txHash = generateTxHash(),
           status = "CONCLUDED",
           timestamp = System.currentTimeMillis(),
-          note = "Inicialização de carteira conectada ao Hardware Ledger"
+          note = "Inicialização de carteira conectada à conta Ledger de Jhonatan"
         )
       )
-      _appState.value = AppState.Unlocked
+      _toastMessage.value = "Cadastro concluído! Faça login para acessar sua conta."
+      _appState.value = AppState.Locked
     }
   }
 
-  fun verifyPin(enteredPin: String): Boolean {
+  fun verifyLogin(cpfInput: String, enteredPin: String): Boolean {
     val acc = account.value ?: return false
+    val cleanInputCpf = cpfInput.filter { it.isDigit() }
+    val cleanStoredCpf = acc.cpf.filter { it.isDigit() }
+
+    if (cleanStoredCpf.isNotEmpty() && cleanInputCpf.isNotEmpty() && cleanInputCpf != cleanStoredCpf) {
+      _toastMessage.value = "CPF não corresponde ao titular cadastrado."
+      return false
+    }
+
     return if (enteredPin == acc.pin) {
       _appState.value = AppState.Unlocked
       viewModelScope.launch { processHourlyRewardsAndPendingTransfers(acc) }
@@ -191,7 +202,7 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
         dao.updateTransactionStatus(
           tx.id,
           "FAILED_BANK_RETENTION",
-          "Falha na liquidação ($originLabel): O banco emissor reteu o dinheiro enviado por política de prevenção e análise de conformidade."
+          "Falhou por causa do banco ($originLabel): O banco reteu o dinheiro enviado por política de prevenção e análise de conformidade."
         )
       }
     }
@@ -272,7 +283,41 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
           note = "Crédito recebido em carteira Ledger"
         )
       )
-      _toastMessage.value = "+${String.format("%.6f", amount)} BTC adicionados ao saldo."
+      _toastMessage.value = "+${String.format(Locale.US, "%.6f", amount)} BTC adicionados ao saldo."
+    }
+  }
+
+  fun devAddBrlAsBtc(amountBrl: Double) {
+    viewModelScope.launch {
+      if (amountBrl <= 0) {
+        _toastMessage.value = "Informe um valor em Reais maior que zero."
+        return@launch
+      }
+      val acc = account.value ?: return@launch
+      val btcPriceBrl = _bitcoinPriceBrl.value.coerceAtLeast(1.0)
+      val convertedBtc = amountBrl / btcPriceBrl
+      val usdValue = convertedBtc * _bitcoinPriceUsd.value
+      val newBalance = acc.balanceBtc + convertedBtc
+      val brlFormatter = NumberFormat.getCurrencyInstance(Locale.Builder().setLanguage("pt").setRegion("BR").build())
+
+      dao.updateBalanceAndTimestamp(newBalance, acc.lastHourlyUpdate)
+      dao.insertTransaction(
+        TransactionEntity(
+          type = "RECEIVE",
+          sender = "Conversão Pix / BRL",
+          recipient = acc.name,
+          institution = "Hardware Ledger Exchange",
+          amountBtc = convertedBtc,
+          amountUsd = usdValue,
+          amountBrl = amountBrl,
+          feeBtc = 0.000010,
+          txHash = generateTxHash(),
+          status = "CONCLUDED",
+          timestamp = System.currentTimeMillis(),
+          note = "Adicionado ${brlFormatter.format(amountBrl)} convertidos em ${String.format(Locale.US, "%.8f", convertedBtc)} BTC"
+        )
+      )
+      _toastMessage.value = "${brlFormatter.format(amountBrl)} convertidos em +${String.format(Locale.US, "%.6f", convertedBtc)} BTC!"
     }
   }
 
@@ -304,7 +349,7 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
           )
         )
       }
-      _toastMessage.value = "-${String.format("%.6f", deducted)} BTC reduzidos do saldo."
+      _toastMessage.value = "-${String.format(Locale.US, "%.6f", deducted)} BTC reduzidos do saldo."
     }
   }
 
@@ -323,6 +368,19 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
       dao.updateBalanceAndTimestamp(acc.balanceBtc, forcedTime)
       processHourlyRewardsAndPendingTransfers(dao.getAccount()!!)
       _toastMessage.value = "Ciclo de 1 hora processado."
+    }
+  }
+
+  fun devMarkBankFailure(tx: TransactionEntity, bankName: String) {
+    viewModelScope.launch {
+      val cleanBank = bankName.trim().ifBlank { "Banco Emissor" }
+      val updated = tx.copy(
+        institution = cleanBank,
+        status = "FAILED_BANK_RETENTION",
+        note = "Falhou por causa do banco ($cleanBank): O banco reteu o valor da transação por política de prevenção e conformidade bancária."
+      )
+      dao.updateTransaction(updated)
+      _toastMessage.value = "Extrato atualizado: falha atribuída ao $cleanBank."
     }
   }
 

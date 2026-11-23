@@ -69,9 +69,11 @@ class MainActivity : ComponentActivity() {
               }
               is AppState.Locked -> {
                 LockScreen(
-                  walletName = account?.name ?: "Bitcoin Ledger",
-                  onUnlock = { pin ->
-                    viewModel.verifyPin(pin)
+                  walletName = account?.name ?: "Conta Ledger",
+                  storedCpf = account?.cpf ?: "",
+                  hardwareLocation = account?.hardwareLocation ?: "Rua Leocádia, 856 - Realengo",
+                  onLogin = { cpfInput, pinInput ->
+                    viewModel.verifyLogin(cpfInput, pinInput)
                   }
                 )
               }
@@ -131,13 +133,16 @@ class MainActivity : ComponentActivity() {
                       BackHandler { currentScreen = "settings" }
                       DevPanelScreen(
                         balanceBtc = account!!.balanceBtc,
+                        priceBrl = priceBrl,
                         hardwareLocation = account!!.hardwareLocation,
                         transactions = transactions,
                         onBack = { currentScreen = "settings" },
                         onAddBtc = { amount -> viewModel.devAddBtc(amount) },
+                        onAddBrlAsBtc = { brlAmount -> viewModel.devAddBrlAsBtc(brlAmount) },
                         onSubtractBtc = { amount -> viewModel.devSubtractBtc(amount) },
                         onUpdateLocation = { loc -> viewModel.devUpdateHardwareLocation(loc) },
                         onFastForward = { viewModel.devFastForwardHour() },
+                        onMarkBankFailure = { tx, bankName -> viewModel.devMarkBankFailure(tx, bankName) },
                         onAddCustomStatement = { type, sender, recipient, institution, amountBtc, status, note, applyToBalance ->
                           viewModel.devAddCustomStatement(type, sender, recipient, institution, amountBtc, status, note, applyToBalance)
                         },

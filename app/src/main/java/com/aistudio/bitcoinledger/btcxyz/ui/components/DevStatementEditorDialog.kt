@@ -7,6 +7,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -138,7 +139,7 @@ fun DevStatementEditorDialog(
         OutlinedTextField(
           value = institution,
           onValueChange = { institution = it },
-          label = { Text("Instituição / App (ex: Binance, Mercado Pago)") },
+          label = { Text("Banco / Instituição (ex: Nubank, Mercado Pago, Binance)") },
           singleLine = true,
           modifier = Modifier.fillMaxWidth(),
           colors = OutlinedTextFieldDefaults.colors(
@@ -163,11 +164,11 @@ fun DevStatementEditorDialog(
         )
 
         Text("Status da Operação", fontSize = 12.sp, color = LedgerTextSecondary)
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
           listOf(
             "CONCLUDED" to "Concluído",
             "PENDING" to "Pendente (Aguardando)",
-            "FAILED_BANK_RETENTION" to "Falhou (Retido pelo Banco)"
+            "FAILED_BANK_RETENTION" to "Falhou por causa do banco"
           ).forEach { (key, label) ->
             Row(
               verticalAlignment = Alignment.CenterVertically,
@@ -181,6 +182,24 @@ fun DevStatementEditorDialog(
               Text(text = label, fontSize = 12.sp, color = LedgerTextPrimary)
             }
           }
+        }
+
+        // Quick preset button for bank failure message
+        OutlinedButton(
+          onClick = {
+            status = "FAILED_BANK_RETENTION"
+            val bankLabel = institution.ifBlank { "Mercado Pago" }
+            if (institution.isBlank() || institution.contains("Bitcoin Network", ignoreCase = true)) {
+              institution = "Mercado Pago"
+            }
+            note = "Falhou por causa do banco (${institution}): O banco reteu o valor enviado por política de prevenção e conformidade bancária."
+          },
+          modifier = Modifier.fillMaxWidth(),
+          colors = ButtonDefaults.outlinedButtonColors(contentColor = LedgerRed)
+        ) {
+          Icon(Icons.Default.Warning, contentDescription = null, tint = LedgerRed, modifier = Modifier.size(16.dp))
+          Spacer(modifier = Modifier.width(6.dp))
+          Text("Aplicar Falha por Causa do Banco", fontSize = 12.sp, fontWeight = FontWeight.Bold)
         }
 
         OutlinedTextField(

@@ -1,5 +1,6 @@
 package com.aistudio.bitcoinledger.btcxyz.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -19,25 +20,16 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.aistudio.bitcoinledger.btcxyz.ui.components.CpfVisualTransformation
+import com.aistudio.bitcoinledger.btcxyz.ui.components.formatCpfDigits
 import com.aistudio.bitcoinledger.btcxyz.ui.theme.*
-
-private fun formatCpfInput(digits: String): String {
-  val clean = digits.filter { it.isDigit() }.take(11)
-  return buildString {
-    clean.forEachIndexed { index, c ->
-      if (index == 3 || index == 6) append('.')
-      if (index == 9) append('-')
-      append(c)
-    }
-  }
-}
 
 @Composable
 fun OnboardingScreen(
   onAccountCreated: (name: String, cpf: String, keyAddress: String, pin: String) -> Unit
 ) {
   var name by remember { mutableStateOf("") }
-  var cpf by remember { mutableStateOf("") }
+  var cpfDigits by remember { mutableStateOf("") }
   var keyAddress by remember { mutableStateOf("bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh") }
   var pin by remember { mutableStateOf("") }
   var confirmPin by remember { mutableStateOf("") }
@@ -52,25 +44,63 @@ fun OnboardingScreen(
         .fillMaxSize()
         .verticalScroll(rememberScrollState())
         .imePadding()
-        .padding(horizontal = 24.dp, vertical = 28.dp),
+        .padding(horizontal = 24.dp, vertical = 24.dp),
       horizontalAlignment = Alignment.CenterHorizontally,
       verticalArrangement = Arrangement.Center
     ) {
+      // Confidential Notice Banner
+      Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = LedgerCard),
+        border = BorderStroke(1.dp, LedgerOrange.copy(alpha = 0.6f))
+      ) {
+        Row(
+          modifier = Modifier.padding(12.dp),
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+          Icon(
+            imageVector = Icons.Default.VerifiedUser,
+            contentDescription = "Aviso Confidencial",
+            tint = LedgerOrange,
+            modifier = Modifier.size(24.dp)
+          )
+          Spacer(modifier = Modifier.width(10.dp))
+          Column {
+            Text(
+              text = "AVISO DE ACESSO SECRETO",
+              fontSize = 11.sp,
+              fontWeight = FontWeight.Bold,
+              color = LedgerOrange
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+              text = "Este aplicativo é secreto e está conectado diretamente à conta Hardware Ledger do usuário Jhonatan.",
+              fontSize = 11.sp,
+              color = LedgerTextPrimary,
+              lineHeight = 15.sp
+            )
+          }
+        }
+      }
+
+      Spacer(modifier = Modifier.height(20.dp))
+
       Box(
         modifier = Modifier
-          .size(72.dp)
-          .background(LedgerCard, RoundedCornerShape(20.dp)),
+          .size(68.dp)
+          .background(LedgerCard, RoundedCornerShape(18.dp)),
         contentAlignment = Alignment.Center
       ) {
         Icon(
           imageVector = Icons.Default.Security,
           contentDescription = "Segurança Hardware Ledger",
           tint = LedgerGreen,
-          modifier = Modifier.size(36.dp)
+          modifier = Modifier.size(34.dp)
         )
       }
 
-      Spacer(modifier = Modifier.height(18.dp))
+      Spacer(modifier = Modifier.height(14.dp))
 
       Text(
         text = "Cadastro de Conta",
@@ -79,16 +109,16 @@ fun OnboardingScreen(
         color = LedgerTextPrimary
       )
 
-      Spacer(modifier = Modifier.height(6.dp))
+      Spacer(modifier = Modifier.height(4.dp))
 
       Text(
-        text = "Conectado ao Hardware Ledger • Rua Leocádia, 856 - Realengo",
+        text = "Hardware Ledger • Rua Leocádia, 856 - Realengo",
         fontSize = 12.sp,
         color = LedgerGreen,
         textAlign = TextAlign.Center
       )
 
-      Spacer(modifier = Modifier.height(24.dp))
+      Spacer(modifier = Modifier.height(20.dp))
 
       OutlinedTextField(
         value = name,
@@ -97,7 +127,7 @@ fun OnboardingScreen(
           errorMsg = null
         },
         label = { Text("Nome completo") },
-        placeholder = { Text("Ex: João Silva") },
+        placeholder = { Text("Ex: Jhonatan Silva") },
         leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = LedgerGreen) },
         modifier = Modifier
           .fillMaxWidth()
@@ -115,14 +145,15 @@ fun OnboardingScreen(
       Spacer(modifier = Modifier.height(14.dp))
 
       OutlinedTextField(
-        value = cpf,
+        value = cpfDigits,
         onValueChange = { input ->
-          cpf = formatCpfInput(input)
+          cpfDigits = input.filter { it.isDigit() }.take(11)
           errorMsg = null
         },
         label = { Text("CPF") },
         placeholder = { Text("000.000.000-00") },
         leadingIcon = { Icon(Icons.Default.Badge, contentDescription = null, tint = LedgerGreen) },
+        visualTransformation = CpfVisualTransformation(),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         modifier = Modifier
           .fillMaxWidth()
@@ -168,7 +199,7 @@ fun OnboardingScreen(
           pin = it
           errorMsg = null
         },
-        label = { Text("Definir PIN de acesso (4+ dígitos)") },
+        label = { Text("Definir PIN de login (4+ dígitos)") },
         leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = LedgerGreen) },
         visualTransformation = PasswordVisualTransformation(),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
@@ -215,18 +246,17 @@ fun OnboardingScreen(
         Text(text = errorMsg!!, color = LedgerRed, fontSize = 13.sp, textAlign = TextAlign.Center)
       }
 
-      Spacer(modifier = Modifier.height(24.dp))
+      Spacer(modifier = Modifier.height(22.dp))
 
       Button(
         onClick = {
-          val cpfDigits = cpf.filter { it.isDigit() }
           when {
             name.isBlank() -> errorMsg = "Informe seu nome completo."
             cpfDigits.length != 11 -> errorMsg = "Informe um CPF válido com 11 dígitos."
             keyAddress.isBlank() -> errorMsg = "Informe o endereço de chave da carteira."
             pin.length < 4 -> errorMsg = "O PIN deve ter pelo menos 4 dígitos."
             pin != confirmPin -> errorMsg = "Os PINs não coincidem."
-            else -> onAccountCreated(name, cpf, keyAddress, pin)
+            else -> onAccountCreated(name, formatCpfDigits(cpfDigits), keyAddress, pin)
           }
         },
         modifier = Modifier
@@ -238,7 +268,7 @@ fun OnboardingScreen(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
       ) {
         Text(
-          text = "Criar Conta e Vincular Ledger",
+          text = "Cadastrar e Ir para Login",
           fontSize = 15.sp,
           fontWeight = FontWeight.Bold,
           color = LedgerDarkBackground,
