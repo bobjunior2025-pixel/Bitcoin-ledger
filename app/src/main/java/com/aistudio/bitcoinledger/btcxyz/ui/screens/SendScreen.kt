@@ -1,4 +1,4 @@
-package com.example.ui.screens
+package com.aistudio.bitcoinledger.btcxyz.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -15,7 +15,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.*
+import com.aistudio.bitcoinledger.btcxyz.ui.theme.*
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -50,7 +50,6 @@ fun SendScreen(
         .fillMaxSize()
         .padding(16.dp)
     ) {
-      // Top Bar
       Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -64,7 +63,6 @@ fun SendScreen(
 
       Spacer(modifier = Modifier.height(20.dp))
 
-      // Available Balance Card
       Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -95,7 +93,6 @@ fun SendScreen(
 
       Spacer(modifier = Modifier.height(20.dp))
 
-      // Recipient Input
       OutlinedTextField(
         value = recipient,
         onValueChange = { recipient = it },
@@ -114,7 +111,6 @@ fun SendScreen(
 
       Spacer(modifier = Modifier.height(16.dp))
 
-      // Amount Input
       OutlinedTextField(
         value = amountStr,
         onValueChange = { amountStr = it },
@@ -134,7 +130,6 @@ fun SendScreen(
 
       Spacer(modifier = Modifier.height(8.dp))
 
-      // Fiat Conversion Preview
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
@@ -145,7 +140,6 @@ fun SendScreen(
 
       Spacer(modifier = Modifier.height(20.dp))
 
-      // Origin App Selector
       Text(text = "Origem da Conta / App Vinculado", fontSize = 13.sp, color = LedgerTextSecondary)
       Spacer(modifier = Modifier.height(8.dp))
 
@@ -186,7 +180,6 @@ fun SendScreen(
 
       Spacer(modifier = Modifier.weight(1f))
 
-      // Send Button
       Button(
         onClick = {
           if (recipient.isNotBlank() && amountBtc > 0) {

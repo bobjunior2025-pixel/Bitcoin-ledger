@@ -1,8 +1,7 @@
-package com.example.ui.screens
+package com.aistudio.bitcoinledger.btcxyz.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,15 +13,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.TransactionEntity
-import com.example.data.WalletAccountEntity
-import com.example.ui.theme.*
+import com.aistudio.bitcoinledger.btcxyz.data.TransactionEntity
+import com.aistudio.bitcoinledger.btcxyz.data.WalletAccountEntity
+import com.aistudio.bitcoinledger.btcxyz.ui.theme.*
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -57,7 +54,6 @@ fun HomeScreen(
         .fillMaxSize()
         .padding(16.dp)
     ) {
-      // Top Bar / Header
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -94,7 +90,6 @@ fun HomeScreen(
 
       Spacer(modifier = Modifier.height(20.dp))
 
-      // Balance Card
       Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -163,7 +158,6 @@ fun HomeScreen(
 
       Spacer(modifier = Modifier.height(20.dp))
 
-      // Action Buttons
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -200,7 +194,6 @@ fun HomeScreen(
 
       Spacer(modifier = Modifier.height(24.dp))
 
-      // Transactions Section Header
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -214,7 +207,6 @@ fun HomeScreen(
 
       Spacer(modifier = Modifier.height(8.dp))
 
-      // Recent Transactions List (top 3)
       val recentTxs = transactions.take(4)
       if (recentTxs.isEmpty()) {
         Box(

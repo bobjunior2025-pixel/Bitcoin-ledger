@@ -1,4 +1,4 @@
-package com.example
+package com.aistudio.bitcoinledger.btcxyz
 
 import android.os.Bundle
 import android.widget.Toast
@@ -11,15 +11,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.ui.screens.*
-import com.example.ui.theme.*
-import com.example.viewmodel.AppState
-import com.example.viewmodel.WalletViewModel
+import com.aistudio.bitcoinledger.btcxyz.ui.screens.*
+import com.aistudio.bitcoinledger.btcxyz.ui.theme.*
+import com.aistudio.bitcoinledger.btcxyz.viewmodel.AppState
+import com.aistudio.bitcoinledger.btcxyz.viewmodel.WalletViewModel
 
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,10 +44,15 @@ class MainActivity : ComponentActivity() {
 
         var currentScreen by remember { mutableStateOf("home") }
 
-        Surface(
+        Scaffold(
           modifier = Modifier.fillMaxSize(),
-          color = LedgerDarkBackground
-        ) {
+          containerColor = LedgerDarkBackground
+        ) { innerPadding ->
+          Box(
+            modifier = Modifier
+              .fillMaxSize()
+              .padding(innerPadding)
+          ) {
           when (appState) {
             is AppState.Loading -> {
               Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -128,6 +132,7 @@ class MainActivity : ComponentActivity() {
                 }
               }
             }
+          }
           }
         }
       }

@@ -1,4 +1,4 @@
-package com.example.ui.screens
+package com.aistudio.bitcoinledger.btcxyz.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,8 +13,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.TransactionEntity
-import com.example.ui.theme.*
+import com.aistudio.bitcoinledger.btcxyz.data.TransactionEntity
+import com.aistudio.bitcoinledger.btcxyz.ui.theme.*
 
 @Composable
 fun TransactionsScreen(transactions: List<TransactionEntity>, onBack: () -> Unit) {

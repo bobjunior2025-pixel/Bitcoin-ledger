@@ -1,9 +1,9 @@
-package com.example.viewmodel
+package com.aistudio.bitcoinledger.btcxyz.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.data.*
+import com.aistudio.bitcoinledger.btcxyz.data.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
@@ -68,7 +68,6 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
       if (acc == null) {
         _appState.value = AppState.Onboarding
       } else {
-        // Check hourly rewards and pending transactions on start
         processHourlyRewardsAndPendingTransfers(acc)
         _appState.value = AppState.Locked
       }
@@ -81,7 +80,7 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
         id = 1,
         name = name,
         pin = pin,
-        balanceBtc = 0.45200000, // Initial generous Ledger BTC balance
+        balanceBtc = 0.45200000,
         lastHourlyUpdate = System.currentTimeMillis()
       )
       dao.insertAccount(initialAccount)
@@ -125,7 +124,6 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
     var currentBalance = acc.balanceBtc
     var updatedTimestamp = acc.lastHourlyUpdate
 
-    // 1. Process hourly accumulation (+0.00005 BTC per elapsed hour)
     if (elapsedMillis >= oneHourMillis) {
       val hoursElapsed = elapsedMillis / oneHourMillis
       val rewardBtc = hoursElapsed * 0.00005
@@ -148,7 +146,6 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
 
     dao.updateBalanceAndTimestamp(currentBalance, updatedTimestamp)
 
-    // 2. Check pending transfers (if 1 hour elapsed since sending, fail them due to bank retention)
     val pendingTxs = dao.getPendingTransactions()
     for (tx in pendingTxs) {
       val txElapsed = now - tx.timestamp
@@ -174,7 +171,6 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
         return@launch
       }
 
-      // Deduct balance or hold
       val newBalance = acc.balanceBtc - amountBtc
       dao.updateBalanceAndTimestamp(newBalance, acc.lastHourlyUpdate)
 
@@ -209,7 +205,6 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
     }
   }
 
-  // Developer functions
   fun devAddBtc(amount: Double) {
     viewModelScope.launch {
       val acc = account.value ?: return@launch
@@ -234,7 +229,6 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
   fun devFastForwardHour() {
     viewModelScope.launch {
       val acc = account.value ?: return@launch
-      // Force lastHourlyUpdate back by 1 hour
       val forcedTime = acc.lastHourlyUpdate - TimeUnit.HOURS.toMillis(1)
       dao.updateBalanceAndTimestamp(acc.balanceBtc, forcedTime)
       processHourlyRewardsAndPendingTransfers(dao.getAccount()!!)

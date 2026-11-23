@@ -1,4 +1,4 @@
-package com.example.ui.screens
+package com.aistudio.bitcoinledger.btcxyz.ui.screens
 
 import android.content.ClipboardManager
 import android.content.Context
@@ -20,7 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.*
+import com.aistudio.bitcoinledger.btcxyz.ui.theme.*
 
 @Composable
 fun ReceiveScreen(onBack: () -> Unit) {

@@ -1,4 +1,4 @@
-package com.example.ui.screens
+package com.aistudio.bitcoinledger.btcxyz.ui.screens
 
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -16,7 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.*
+import com.aistudio.bitcoinledger.btcxyz.ui.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -60,7 +60,6 @@ fun SettingsScreen(
 
       Spacer(modifier = Modifier.height(20.dp))
 
-      // Lock Wallet Option
       Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -85,7 +84,6 @@ fun SettingsScreen(
 
       Spacer(modifier = Modifier.height(12.dp))
 
-      // GitHub Actions APK Integration Card with Trigger
       Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -140,7 +138,6 @@ fun SettingsScreen(
 
       Spacer(modifier = Modifier.height(12.dp))
 
-      // Developer Mode / Secret Passcode Entry
       Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),

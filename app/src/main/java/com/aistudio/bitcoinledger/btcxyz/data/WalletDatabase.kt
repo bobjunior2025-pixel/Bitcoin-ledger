@@ -1,4 +1,4 @@
-package com.example.data
+package com.aistudio.bitcoinledger.btcxyz.data
 
 import android.content.Context
 import androidx.room.*
